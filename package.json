@@ -1,0 +1,32 @@
+{
+  "name": "genesis-electron",
+  "version": "1.0.0",
+  "description": "Genesis MUD desktop wrapper",
+  "main": "main.js",
+  "author": "You",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder -w",
+    "dist:mac": "electron-builder -m",
+    "dist:linux": "electron-builder -l"
+  },
+  "build": {
+    "appId": "org.genesis.wrapper",
+    "productName": "Genesis MUD",
+    "files": [
+      "main.js",
+      "index.js",
+      "package.json"
+    ],
+    "mac": { "category": "public.app-category.games" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}
+
