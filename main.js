@@ -21,6 +21,20 @@ function createWindow() {
   // Load Genesis web client
   win.loadURL(START_URL);
 
+  // Disable beforeunload handlers that might prevent closing
+  win.webContents.once('did-finish-load', () => {
+    win.webContents.executeJavaScript(`
+      // Override beforeunload to prevent it from blocking window close
+      window.addEventListener('beforeunload', function(e) {
+        e.preventDefault = function() {};
+        delete e.returnValue;
+      }, true);
+      
+      // Also override the onbeforeunload property
+      window.onbeforeunload = null;
+    `);
+  });
+
   // Open all new windows/links in the external browser (not inside the app)
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -35,6 +49,8 @@ function createWindow() {
       shell.openExternal(url);
     }
   });
+
+  return win;
 }
 
 app.whenReady().then(() => {
