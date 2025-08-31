@@ -1,15 +1,143 @@
 // main.js
-const { app, BrowserWindow, shell, session } = require('electron');
+const { app, BrowserWindow, shell, session, Menu } = require('electron');
 const path = require('path');
 
 const START_URL = 'https://www.genesismud.org/play';
+
+// Store preferences
+let preferences = {
+  showButtonPanel: true
+};
+
+// Create menu template
+function createMenu(win) {
+  const template = [
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Show Button Panel',
+          type: 'checkbox',
+          checked: preferences.showButtonPanel,
+          click: () => {
+            preferences.showButtonPanel = !preferences.showButtonPanel;
+            // Toggle the button panel visibility
+            win.webContents.executeJavaScript(`
+              (function() {
+                const buttonBar = document.getElementById('custom-button-bar');
+                const mainDiv = document.getElementById('main');
+                if (buttonBar && mainDiv) {
+                  if (${preferences.showButtonPanel}) {
+                    buttonBar.style.display = 'flex';
+                    mainDiv.style.width = 'calc(60% - 50px)';
+                    mainDiv.style.marginLeft = '50px';
+                  } else {
+                    buttonBar.style.display = 'none';
+                    mainDiv.style.width = '60%';
+                    mainDiv.style.marginLeft = '0px';
+                  }
+                }
+              })();
+            `).catch(err => {
+              console.error('Failed to toggle button panel:', err);
+            });
+            
+            // Update the menu item
+            const menu = createMenu(win);
+            Menu.setApplicationMenu(menu);
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Reload',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            win.reload();
+          }
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'F12',
+          click: () => {
+            win.webContents.toggleDevTools();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        {
+          label: 'Minimize',
+          accelerator: 'CmdOrCtrl+M',
+          click: () => {
+            win.minimize();
+          }
+        },
+        {
+          label: 'Close',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => {
+            win.close();
+          }
+        }
+      ]
+    }
+  ];
+
+  // macOS specific menu adjustments
+  if (process.platform === 'darwin') {
+    template.unshift({
+      label: app.getName(),
+      submenu: [
+        {
+          label: 'About ' + app.getName(),
+          role: 'about'
+        },
+        { type: 'separator' },
+        {
+          label: 'Preferences...',
+          accelerator: 'Cmd+,',
+          click: () => {
+            // Could open a preferences window here
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Hide ' + app.getName(),
+          accelerator: 'Command+H',
+          role: 'hide'
+        },
+        {
+          label: 'Hide Others',
+          accelerator: 'Command+Shift+H',
+          role: 'hideothers'
+        },
+        {
+          label: 'Show All',
+          role: 'unhide'
+        },
+        { type: 'separator' },
+        {
+          label: 'Quit',
+          accelerator: 'Command+Q',
+          click: () => {
+            app.quit();
+          }
+        }
+      ]
+    });
+  }
+
+  return Menu.buildFromTemplate(template);
+}
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
     backgroundColor: '#000000',
-    autoHideMenuBar: true,
+    autoHideMenuBar: false, // Show menu bar so users can access preferences
     webPreferences: {
       // Keep the remote site sandboxed for safety
       nodeIntegration: false,
@@ -17,6 +145,10 @@ function createWindow() {
       sandbox: true,
     },
   });
+
+  // Set up the menu
+  const menu = createMenu(win);
+  Menu.setApplicationMenu(menu);
 
   // Load Genesis web client
   win.loadURL(START_URL);
@@ -43,10 +175,6 @@ function createWindow() {
         const clientDiv = document.getElementById('client');
         const mainDiv = document.getElementById('main');
         if (clientDiv && mainDiv) {
-          // Adjust main div width to make room for button bar
-          mainDiv.style.width = 'calc(60% - 50px)';
-          mainDiv.style.marginLeft = '50px';
-          
           // Create the vertical button bar container
           const buttonBar = document.createElement('div');
           buttonBar.id = 'custom-button-bar';
@@ -170,6 +298,12 @@ function createWindow() {
           
           // Add the button bar to the body (fixed positioning)
           document.body.appendChild(buttonBar);
+          
+          // Set initial state based on preferences
+          // Note: Since this runs in renderer, we always start with buttons visible
+          // The menu toggle will control visibility after creation
+          mainDiv.style.width = 'calc(60% - 50px)';
+          mainDiv.style.marginLeft = '50px';
           
           console.log('Custom button bar added successfully!');
         } else {
