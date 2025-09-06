@@ -1,16 +1,19 @@
 // main.js
 const { app, BrowserWindow, shell, session, Menu } = require('electron');
 const path = require('path');
+const SettingsManager = require('./settings/SettingsManager');
+const SettingsWindow = require('./settings/SettingsWindow');
+
+// Initialize settings manager
+let settingsManager;
+let settingsWindow;
 
 const START_URL = 'https://www.genesismud.org/play';
 
-// Store preferences
-let preferences = {
-  showButtonPanel: true
-};
-
 // Create menu template
 function createMenu(win) {
+  const settings = settingsManager.get();
+  
   const template = [
     {
       label: 'View',
@@ -18,19 +21,21 @@ function createMenu(win) {
         {
           label: 'Show Button Panel',
           type: 'checkbox',
-          checked: preferences.showButtonPanel,
+          checked: settings.ui.showButtonPanel,
           click: () => {
-            preferences.showButtonPanel = !preferences.showButtonPanel;
+            const currentValue = settingsManager.get('ui.showButtonPanel');
+            settingsManager.set('ui.showButtonPanel', !currentValue);
+            
             // Toggle the button panel visibility
             win.webContents.executeJavaScript(`
               (function() {
                 const buttonBar = document.getElementById('custom-button-bar');
                 const mainDiv = document.getElementById('main');
                 if (buttonBar && mainDiv) {
-                  if (${preferences.showButtonPanel}) {
+                  if (${!currentValue}) {
                     buttonBar.style.display = 'flex';
-                    mainDiv.style.width = 'calc(60% - 50px)';
-                    mainDiv.style.marginLeft = '50px';
+                    mainDiv.style.width = 'calc(60% - ${settings.ui.buttonPanelWidth}px)';
+                    mainDiv.style.marginLeft = '${settings.ui.buttonPanelWidth}px';
                   } else {
                     buttonBar.style.display = 'none';
                     mainDiv.style.width = '60%';
@@ -45,6 +50,18 @@ function createMenu(win) {
             // Update the menu item
             const menu = createMenu(win);
             Menu.setApplicationMenu(menu);
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Preferences...',
+          accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+          click: () => {
+            if (!settingsWindow.isOpen()) {
+              settingsWindow.create();
+            } else {
+              settingsWindow.window.focus();
+            }
           }
         },
         { type: 'separator' },
@@ -99,7 +116,11 @@ function createMenu(win) {
           label: 'Preferences...',
           accelerator: 'Cmd+,',
           click: () => {
-            // Could open a preferences window here
+            if (!settingsWindow.isOpen()) {
+              settingsWindow.create();
+            } else {
+              settingsWindow.window.focus();
+            }
           }
         },
         { type: 'separator' },
@@ -133,9 +154,11 @@ function createMenu(win) {
 }
 
 function createWindow() {
+  const settings = settingsManager.get();
+  
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: settings.window.width,
+    height: settings.window.height,
     backgroundColor: '#000000',
     autoHideMenuBar: false, // Show menu bar so users can access preferences
     webPreferences: {
@@ -151,7 +174,25 @@ function createWindow() {
   Menu.setApplicationMenu(menu);
 
   // Load Genesis web client
-  win.loadURL(START_URL);
+  win.loadURL(settings.game.startUrl);
+
+  // Listen for settings changes to update UI
+  settingsManager.subscribe((newSettings, oldSettings) => {
+    // Update menu if button panel setting changed
+    if (newSettings.ui.showButtonPanel !== oldSettings.ui.showButtonPanel) {
+      const menu = createMenu(win);
+      Menu.setApplicationMenu(menu);
+    }
+
+    // Update button panel in renderer if settings changed
+    win.webContents.executeJavaScript(`
+      if (typeof updateButtonsFromSettings === 'function') {
+        updateButtonsFromSettings(${JSON.stringify(newSettings)});
+      }
+    `).catch(() => {
+      // Ignore errors if page not ready
+    });
+  });
 
   // Disable beforeunload handlers that might prevent closing
   win.webContents.once('did-finish-load', () => {
@@ -191,42 +232,11 @@ function createWindow() {
             border-radius: 6px;
             border: 1px solid #555;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-            width: 38px;
+            width: ${settings.ui.buttonPanelWidth}px;
           \`;
           
-          // Button configurations with MUD commands
-          const buttons = [
-            {
-              icon: '💎',
-              title: 'Look Around',
-              command: 'look',
-              color: '#9C27B0'
-            },
-            {
-              icon: '🔥',
-              title: 'Check Inventory',
-              command: 'inventory',
-              color: '#FF5722'
-            },
-            {
-              icon: '🪄',
-              title: 'Check Stats',
-              command: 'score',
-              color: '#673AB7'
-            },
-            {
-              icon: '❤️',
-              title: 'Check Health',
-              command: 'health',
-              color: '#E91E63'
-            },
-            {
-              icon: '⚡',
-              title: 'Who Online',
-              command: 'who',
-              color: '#FFC107'
-            }
-          ];
+          // Get button configurations from settings
+          const buttons = ${JSON.stringify(settings.buttons.customButtons)};
           
           // Create each button
           buttons.forEach((btnConfig, index) => {
@@ -238,8 +248,8 @@ function createWindow() {
             
             // Base button styling
             button.style.cssText = \`
-              width: 38px;
-              height: 38px;
+              width: ${settings.ui.buttonPanelWidth - 4}px;
+              height: ${settings.ui.buttonPanelWidth - 4}px;
               background: #333;
               color: #fff;
               border: 2px solid \${btnConfig.color};
@@ -299,11 +309,16 @@ function createWindow() {
           // Add the button bar to the body (fixed positioning)
           document.body.appendChild(buttonBar);
           
-          // Set initial state based on preferences
-          // Note: Since this runs in renderer, we always start with buttons visible
-          // The menu toggle will control visibility after creation
-          mainDiv.style.width = 'calc(60% - 50px)';
-          mainDiv.style.marginLeft = '50px';
+          // Set initial state based on settings
+          if (${settings.ui.showButtonPanel}) {
+            buttonBar.style.display = 'flex';
+            mainDiv.style.width = 'calc(60% - ${settings.ui.buttonPanelWidth}px)';
+            mainDiv.style.marginLeft = '${settings.ui.buttonPanelWidth}px';
+          } else {
+            buttonBar.style.display = 'none';
+            mainDiv.style.width = '60%';
+            mainDiv.style.marginLeft = '0px';
+          }
           
           console.log('Custom button bar added successfully!');
         } else {
@@ -311,6 +326,46 @@ function createWindow() {
           setTimeout(addCustomButtonBar, 500);
         }
       }
+
+      // Function to update buttons from settings changes
+      window.updateButtonsFromSettings = function(newSettings) {
+        const buttonBar = document.getElementById('custom-button-bar');
+        const mainDiv = document.getElementById('main');
+        
+        if (buttonBar && mainDiv) {
+          // Update visibility
+          if (newSettings.ui.showButtonPanel) {
+            buttonBar.style.display = 'flex';
+            mainDiv.style.width = \`calc(60% - \${newSettings.ui.buttonPanelWidth}px)\`;
+            mainDiv.style.marginLeft = \`\${newSettings.ui.buttonPanelWidth}px\`;
+          } else {
+            buttonBar.style.display = 'none';
+            mainDiv.style.width = '60%';
+            mainDiv.style.marginLeft = '0px';
+          }
+
+          // Update button panel width
+          buttonBar.style.width = \`\${newSettings.ui.buttonPanelWidth}px\`;
+          
+          // Rebuild buttons if they changed
+          const currentButtons = Array.from(buttonBar.children);
+          const newButtons = newSettings.buttons.customButtons;
+          
+          if (JSON.stringify(currentButtons.map(b => ({
+            icon: b.innerHTML,
+            title: b.title,
+            color: b.style.borderColor
+          }))) !== JSON.stringify(newButtons.map(b => ({
+            icon: b.icon,
+            title: b.title,
+            color: b.color
+          })))) {
+            // Clear and rebuild buttons
+            buttonBar.innerHTML = '';
+            addCustomButtonBar();
+          }
+        }
+      };
       
       // Wait a bit for the page to fully render, then add the button bar
       setTimeout(addCustomButtonBar, 1500);
@@ -325,7 +380,7 @@ function createWindow() {
 
   // Prevent unexpected navigations away from Genesis; open externals outside
   win.webContents.on('will-navigate', (event, url) => {
-    const allowedOrigin = new URL(START_URL).origin;
+    const allowedOrigin = new URL(settings.game.startUrl).origin;
     if (!url.startsWith(allowedOrigin)) {
       event.preventDefault();
       shell.openExternal(url);
@@ -336,6 +391,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Initialize settings manager and settings window
+  settingsManager = new SettingsManager();
+  settingsWindow = new SettingsWindow(settingsManager);
+  
   // Deny any permission prompts by default (camera/mic/etc.)
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
 

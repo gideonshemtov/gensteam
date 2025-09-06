@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genesis Client - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1e1e1e;
+            color: #cccccc;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .settings-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .sidebar-section {
+            padding: 8px 0;
+        }
+
+        .sidebar-item {
+            padding: 8px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-item:hover {
+            background: #2a2d2e;
+        }
+
+        .sidebar-item.active {
+            background: #094771;
+            border-left-color: #007acc;
+            color: #ffffff;
+        }
+
+        .sidebar-item-icon {
+            margin-right: 8px;
+            width: 16px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-header {
+            padding: 20px;
+            border-bottom: 1px solid #3e3e42;
+            background: #2d2d30;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .content-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: 1px solid #3e3e42;
+            background: #0e639c;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #1177bb;
+        }
+
+        .btn.secondary {
+            background: #5a5a5a;
+        }
+
+        .btn.secondary:hover {
+            background: #6a6a6a;
+        }
+
+        .btn.danger {
+            background: #cc0000;
+        }
+
+        .btn.danger:hover {
+            background: #dd0000;
+        }
+
+        .content-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-section {
+            display: none;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        .setting-group {
+            margin-bottom: 30px;
+        }
+
+        .setting-group-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2d2d30;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+        }
+
+        .setting-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #ffffff;
+        }
+
+        .setting-description {
+            font-size: 12px;
+            color: #999999;
+            margin-bottom: 10px;
+        }
+
+        .setting-input {
+            width: 100%;
+            max-width: 300px;
+            padding: 6px 10px;
+            background: #3c3c3c;
+            border: 1px solid #5a5a5a;
+            color: #cccccc;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .setting-checkbox {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .button-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 500px;
+        }
+
+        .button-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #3c3c3c;
+            border-radius: 5px;
+            border: 1px solid #5a5a5a;
+        }
+
+        .button-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .button-info {
+            flex: 1;
+        }
+
+        .button-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .button-command {
+            font-size: 11px;
+            color: #999999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .json-editor-container {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .json-editor-container.active {
+            display: flex;
+        }
+
+        .json-editor-header {
+            padding: 15px;
+            background: #2d2d30;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .json-editor {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 15px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+        }
+
+        .error-message {
+            background: #f14c4c;
+            color: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .success-message {
+            background: #89d185;
+            color: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            display: none;
+        }
+
+        .search-box {
+            width: 200px;
+            padding: 6px 10px;
+            background: #3c3c3c;
+            border: 1px solid #5a5a5a;
+            color: #cccccc;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 5px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 15px;
+            border-bottom: 1px solid #3e3e42;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 15px;
+            border-top: 1px solid #3e3e42;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">Settings</div>
+            <div class="sidebar-section">
+                <div class="sidebar-item active" data-section="ui">
+                    <span class="sidebar-item-icon">🎨</span>
+                    User Interface
+                </div>
+                <div class="sidebar-item" data-section="game">
+                    <span class="sidebar-item-icon">🎮</span>
+                    Game Settings
+                </div>
+                <div class="sidebar-item" data-section="buttons">
+                    <span class="sidebar-item-icon">🔘</span>
+                    Custom Buttons
+                </div>
+                <div class="sidebar-item" data-section="window">
+                    <span class="sidebar-item-icon">🪟</span>
+                    Window
+                </div>
+                <div class="sidebar-item" data-section="advanced">
+                    <span class="sidebar-item-icon">⚙️</span>
+                    Advanced
+                </div>
+                <div class="sidebar-item" data-section="json">
+                    <span class="sidebar-item-icon">📝</span>
+                    Edit JSON
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-header">
+                <div>
+                    <div class="content-title">Settings</div>
+                </div>
+                <div class="content-actions">
+                    <input type="text" class="search-box" placeholder="Search settings..." id="searchBox">
+                    <button class="btn secondary" id="resetAllBtn">Reset All</button>
+                    <button class="btn" id="saveBtn">Save</button>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Error/Success Messages -->
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+
+                <!-- UI Settings -->
+                <div class="settings-section active" data-section="ui">
+                    <div class="setting-group">
+                        <div class="setting-group-title">User Interface</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Show Button Panel</label>
+                            <div class="setting-description">Display the custom button panel on the left side of the game window</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="ui.showButtonPanel">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Button Panel Width</label>
+                            <div class="setting-description">Width of the button panel in pixels (30-100)</div>
+                            <input type="number" class="setting-input" data-path="ui.buttonPanelWidth" min="30" max="100">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Theme</label>
+                            <div class="setting-description">Choose the application theme</div>
+                            <select class="setting-input" data-path="ui.theme">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Font Size</label>
+                            <div class="setting-description">Base font size for the application (10-24)</div>
+                            <input type="number" class="setting-input" data-path="ui.fontSize" min="10" max="24">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Settings -->
+                <div class="settings-section" data-section="game">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Game Settings</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Start URL</label>
+                            <div class="setting-description">Default URL to load when the application starts</div>
+                            <input type="text" class="setting-input" data-path="game.startUrl">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Auto Connect</label>
+                            <div class="setting-description">Automatically connect to the game on startup</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="game.autoConnect">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Command History</label>
+                            <div class="setting-description">Save and recall command history</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="game.commandHistory">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Max History Items</label>
+                            <div class="setting-description">Maximum number of commands to remember (10-1000)</div>
+                            <input type="number" class="setting-input" data-path="game.maxHistoryItems" min="10" max="1000">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Button Settings -->
+                <div class="settings-section" data-section="buttons">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Custom Buttons</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Show Tooltips</label>
+                            <div class="setting-description">Show tooltips when hovering over buttons</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="buttons.showTooltips">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Custom Buttons Configuration</label>
+                            <div class="setting-description">Configure your custom command buttons (edit in JSON mode for full customization)</div>
+                            <div class="button-list" id="buttonList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Window Settings -->
+                <div class="settings-section" data-section="window">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Window Settings</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Default Width</label>
+                            <div class="setting-description">Default window width in pixels (800-3840)</div>
+                            <input type="number" class="setting-input" data-path="window.width" min="800" max="3840">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Default Height</label>
+                            <div class="setting-description">Default window height in pixels (600-2160)</div>
+                            <input type="number" class="setting-input" data-path="window.height" min="600" max="2160">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Remember Size</label>
+                            <div class="setting-description">Remember window size between sessions</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="window.rememberSize">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Remember Position</label>
+                            <div class="setting-description">Remember window position between sessions</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="window.rememberPosition">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="settings-section" data-section="advanced">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Advanced Settings</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Enable Developer Tools</label>
+                            <div class="setting-description">Enable developer tools in production builds</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.enableDevTools">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Debug Logging</label>
+                            <div class="setting-description">Enable debug logging to console</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.debugLogging">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Auto Reload</label>
+                            <div class="setting-description">Automatically reload the page if connection is lost</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.autoReload">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Editor -->
+                <div class="json-editor-container" data-section="json">
+                    <div class="json-editor-header">
+                        <div>
+                            <strong>Edit Settings JSON</strong>
+                            <div style="font-size: 12px; color: #999; margin-top: 2px;">
+                                Direct editing of the settings file. Be careful with syntax!
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn secondary" id="importBtn">Import</button>
+                            <button class="btn secondary" id="exportBtn">Export</button>
+                            <button class="btn" id="saveJsonBtn">Save JSON</button>
+                        </div>
+                    </div>
+                    <textarea class="json-editor" id="jsonEditor" placeholder="Loading settings..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reset Confirmation Modal -->
+    <div class="modal" id="resetModal">
+        <div class="modal-content">
+            <div class="modal-header">Reset Settings</div>
+            <div class="modal-body">
+                <p>Are you sure you want to reset all settings to their default values? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="cancelResetBtn">Cancel</button>
+                <button class="btn danger" id="confirmResetBtn">Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings-renderer.js"></script>
+</body>
+</html>
