@@ -207,14 +207,16 @@ function createWindow() {
       window.onbeforeunload = null;
       
       // Add custom button bar after page loads
-      function addCustomButtonBar() {
+      function addCustomButtonBar(settingsOverride) {
         // Check if button bar already exists
         if (document.getElementById('custom-button-bar')) {
           return;
         }
         
+        const currentSettings = settingsOverride || ${JSON.stringify(settings)};
         const clientDiv = document.getElementById('client');
         const mainDiv = document.getElementById('main');
+        
         if (clientDiv && mainDiv) {
           // Create the vertical button bar container
           const buttonBar = document.createElement('div');
@@ -232,99 +234,95 @@ function createWindow() {
             border-radius: 6px;
             border: 1px solid #555;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-            width: ${settings.ui.buttonPanelWidth}px;
+            width: \${currentSettings.ui.buttonPanelWidth}px;
           \`;
-          
-          // Get button configurations from settings
-          const buttons = ${JSON.stringify(settings.buttons.customButtons)};
-          
-          // Create each button
-          buttons.forEach((btnConfig, index) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.id = \`custom-btn-\${index}\`;
-            button.title = btnConfig.title;
-            button.innerHTML = \`\${btnConfig.icon}\`;
-            
-            // Base button styling
-            button.style.cssText = \`
-              width: ${settings.ui.buttonPanelWidth - 4}px;
-              height: ${settings.ui.buttonPanelWidth - 4}px;
-              background: #333;
-              color: #fff;
-              border: 2px solid \${btnConfig.color};
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 16px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              transition: all 0.3s ease;
-            \`;
-            
-            // Add click event handler
-            button.addEventListener('click', function() {
-              console.log(\`Button clicked: \${btnConfig.title} - Command: \${btnConfig.command}\`);
-              
-              // Use input simulation method (since that's what's working)
-              const input = document.getElementById('input');
-              if (input) {
-                input.value = btnConfig.command;
-                const enterEvent = new KeyboardEvent('keydown', {
-                  key: 'Enter',
-                  code: 'Enter',
-                  keyCode: 13,
-                  which: 13,
-                  bubbles: true
-                });
-                input.dispatchEvent(enterEvent);
-                console.log(\`Sent command: \${btnConfig.command}\`);
-              }
-              
-              // Visual feedback
-              const originalBg = button.style.background;
-              button.style.background = btnConfig.color;
-              button.style.transform = 'scale(0.95)';
-              
-              setTimeout(() => {
-                button.style.background = originalBg;
-                button.style.transform = 'scale(1)';
-              }, 200);
-            });
-            
-            // Hover effects
-            button.addEventListener('mouseenter', function() {
-              button.style.background = btnConfig.color;
-              button.style.transform = 'scale(1.05)';
-            });
-            
-            button.addEventListener('mouseleave', function() {
-              button.style.background = '#333';
-              button.style.transform = 'scale(1)';
-            });
-            
-            buttonBar.appendChild(button);
-          });
           
           // Add the button bar to the body (fixed positioning)
           document.body.appendChild(buttonBar);
           
+          // Create buttons using the shared function
+          createButtons(buttonBar, currentSettings.buttons.customButtons, currentSettings);
+          
           // Set initial state based on settings
-          if (${settings.ui.showButtonPanel}) {
+          if (currentSettings.ui.showButtonPanel) {
             buttonBar.style.display = 'flex';
-            mainDiv.style.width = 'calc(60% - ${settings.ui.buttonPanelWidth}px)';
-            mainDiv.style.marginLeft = '${settings.ui.buttonPanelWidth}px';
+            mainDiv.style.width = \`calc(60% - \${currentSettings.ui.buttonPanelWidth}px)\`;
+            mainDiv.style.marginLeft = \`\${currentSettings.ui.buttonPanelWidth}px\`;
           } else {
             buttonBar.style.display = 'none';
             mainDiv.style.width = '60%';
             mainDiv.style.marginLeft = '0px';
           }
-          
-          console.log('Custom button bar added successfully!');
         } else {
-          console.log('Client or main div not found, retrying...');
-          setTimeout(addCustomButtonBar, 500);
+          setTimeout(() => addCustomButtonBar(settingsOverride), 500);
         }
+      }
+
+      // Function to create buttons (moved outside addCustomButtonBar for reusability)
+      function createButtons(buttonBar, buttons, settings) {
+        buttonBar.innerHTML = '';
+        buttons.forEach((btnConfig, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.id = \`custom-btn-\${index}\`;
+          button.title = btnConfig.title;
+          button.innerHTML = \`\${btnConfig.icon}\`;
+          
+          // Base button styling
+          button.style.cssText = \`
+            width: \${settings.ui.buttonPanelWidth - 4}px;
+            height: \${settings.ui.buttonPanelWidth - 4}px;
+            background: #333;
+            color: #fff;
+            border: 2px solid \${btnConfig.color};
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+          \`;
+          
+          // Add click event handler
+          button.addEventListener('click', function() {
+            const input = document.getElementById('input');
+            if (input) {
+              input.value = btnConfig.command;
+              const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true
+              });
+              input.dispatchEvent(enterEvent);
+            }
+            
+            // Visual feedback
+            const originalBg = button.style.background;
+            button.style.background = btnConfig.color;
+            button.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+              button.style.background = originalBg;
+              button.style.transform = 'scale(1)';
+            }, 200);
+          });
+          
+          // Hover effects
+          button.addEventListener('mouseenter', function() {
+            button.style.background = btnConfig.color;
+            button.style.transform = 'scale(1.05)';
+          });
+          
+          button.addEventListener('mouseleave', function() {
+            button.style.background = '#333';
+            button.style.transform = 'scale(1)';
+          });
+          
+          buttonBar.appendChild(button);
+        });
       }
 
       // Function to update buttons from settings changes
@@ -332,38 +330,27 @@ function createWindow() {
         const buttonBar = document.getElementById('custom-button-bar');
         const mainDiv = document.getElementById('main');
         
-        if (buttonBar && mainDiv) {
-          // Update visibility
-          if (newSettings.ui.showButtonPanel) {
-            buttonBar.style.display = 'flex';
-            mainDiv.style.width = \`calc(60% - \${newSettings.ui.buttonPanelWidth}px)\`;
-            mainDiv.style.marginLeft = \`\${newSettings.ui.buttonPanelWidth}px\`;
-          } else {
-            buttonBar.style.display = 'none';
-            mainDiv.style.width = '60%';
-            mainDiv.style.marginLeft = '0px';
-          }
-
+        if (!buttonBar || !mainDiv) {
+          // If button bar doesn't exist, recreate it
+          setTimeout(() => addCustomButtonBar(newSettings), 100);
+          return;
+        }
+        
+        // Update visibility and layout
+        if (newSettings.ui.showButtonPanel) {
+          buttonBar.style.display = 'flex';
+          mainDiv.style.width = \`calc(60% - \${newSettings.ui.buttonPanelWidth}px)\`;
+          mainDiv.style.marginLeft = \`\${newSettings.ui.buttonPanelWidth}px\`;
+          
           // Update button panel width
           buttonBar.style.width = \`\${newSettings.ui.buttonPanelWidth}px\`;
           
-          // Rebuild buttons if they changed
-          const currentButtons = Array.from(buttonBar.children);
-          const newButtons = newSettings.buttons.customButtons;
-          
-          if (JSON.stringify(currentButtons.map(b => ({
-            icon: b.innerHTML,
-            title: b.title,
-            color: b.style.borderColor
-          }))) !== JSON.stringify(newButtons.map(b => ({
-            icon: b.icon,
-            title: b.title,
-            color: b.color
-          })))) {
-            // Clear and rebuild buttons
-            buttonBar.innerHTML = '';
-            addCustomButtonBar();
-          }
+          // Recreate buttons with new settings
+          createButtons(buttonBar, newSettings.buttons.customButtons, newSettings);
+        } else {
+          buttonBar.style.display = 'none';
+          mainDiv.style.width = '60%';
+          mainDiv.style.marginLeft = '0px';
         }
       };
       
