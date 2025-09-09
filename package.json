@@ -15,16 +15,6 @@
   "build": {
     "appId": "org.genesis.wrapper",
     "productName": "GenesisClient",
-    "files": [
-      "main.js",
-      "index.js",
-      "package.json",
-      "settings/**/*",
-      "js/**/*",
-      "assets/**/*",
-      "styles/**/*",
-      "scripts/**/*"
-    ],
     "mac": { "category": "public.app-category.games" },
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage" }
