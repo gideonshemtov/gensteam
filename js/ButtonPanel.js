@@ -22,15 +22,15 @@ class ButtonPanel {
       style.textContent = `
         .custom-button-bar {
           position: fixed;
-          left: 1rem;
+          left: 0.5rem;
           top: 50%;
           transform: translateY(-50%);
           display: flex;
           flex-direction: column;
-          gap: 0.75rem;
+          gap: 0.5rem;
           z-index: 1000;
           background: rgba(0, 0, 0, 0.9);
-          padding: 1rem;
+          padding: 0.5rem;
           border-radius: 0.75rem;
           border: 1px solid #555;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
@@ -68,7 +68,7 @@ class ButtonPanel {
         }
 
         .game-content-adjusted {
-          margin-left: calc(var(--button-panel-width) + 2rem) !important;
+          margin-left: calc(var(--button-panel-width) + 0.5rem) !important;
           width: calc(60% - var(--button-panel-width) - 2rem) !important;
           transition: all 0.3s ease;
         }

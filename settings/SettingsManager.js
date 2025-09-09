@@ -105,7 +105,7 @@ class SettingsManager {
                 {
                   icon: '🪄',
                   title: 'Check Stats',
-                  command: 'score',
+                  command: 'stats',
                   color: '#673AB7'
                 },
                 {

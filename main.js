@@ -217,7 +217,7 @@ function createWindow() {
         }
       }
       
-      setTimeout(initButtonPanel, 1500);
+      setTimeout(initButtonPanel, 10);
     `);
   });
 
