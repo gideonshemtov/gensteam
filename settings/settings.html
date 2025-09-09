@@ -368,11 +368,7 @@
                 <div class="sidebar-item" data-section="window">
                     <span class="sidebar-item-icon">🪟</span>
                     Window
-                </div>
-                <div class="sidebar-item" data-section="advanced">
-                    <span class="sidebar-item-icon">⚙️</span>
-                    Advanced
-                </div>
+                </div>                
                 <div class="sidebar-item" data-section="json">
                     <span class="sidebar-item-icon">📝</span>
                     Edit JSON
@@ -413,23 +409,7 @@
                             <label class="setting-label">Button Panel Width</label>
                             <div class="setting-description">Width of the button panel in pixels (30-100)</div>
                             <input type="number" class="setting-input" data-path="ui.buttonPanelWidth" min="30" max="100">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Theme</label>
-                            <div class="setting-description">Choose the application theme</div>
-                            <select class="setting-input" data-path="ui.theme">
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                                <option value="auto">Auto</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Font Size</label>
-                            <div class="setting-description">Base font size for the application (10-24)</div>
-                            <input type="number" class="setting-input" data-path="ui.fontSize" min="10" max="24">
-                        </div>
+                        </div>                       
                     </div>
                 </div>
 
@@ -442,25 +422,7 @@
                             <label class="setting-label">Start URL</label>
                             <div class="setting-description">Default URL to load when the application starts</div>
                             <input type="text" class="setting-input" data-path="game.startUrl">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Auto Connect</label>
-                            <div class="setting-description">Automatically connect to the game on startup</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="game.autoConnect">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Command History</label>
-                            <div class="setting-description">Save and recall command history</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="game.commandHistory">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Max History Items</label>
-                            <div class="setting-description">Maximum number of commands to remember (10-1000)</div>
-                            <input type="number" class="setting-input" data-path="game.maxHistoryItems" min="10" max="1000">
-                        </div>
+                        </div>                                                
                     </div>
                 </div>
 
@@ -499,45 +461,8 @@
                             <div class="setting-description">Default window height in pixels (600-2160)</div>
                             <input type="number" class="setting-input" data-path="window.height" min="600" max="2160">
                         </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Remember Size</label>
-                            <div class="setting-description">Remember window size between sessions</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="window.rememberSize">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Remember Position</label>
-                            <div class="setting-description">Remember window position between sessions</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="window.rememberPosition">
-                        </div>
                     </div>
-                </div>
-
-                <!-- Advanced Settings -->
-                <div class="settings-section" data-section="advanced">
-                    <div class="setting-group">
-                        <div class="setting-group-title">Advanced Settings</div>
-                        
-                        <div class="setting-item">
-                            <label class="setting-label">Enable Developer Tools</label>
-                            <div class="setting-description">Enable developer tools in production builds</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.enableDevTools">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Debug Logging</label>
-                            <div class="setting-description">Enable debug logging to console</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.debugLogging">
-                        </div>
-
-                        <div class="setting-item">
-                            <label class="setting-label">Auto Reload</label>
-                            <div class="setting-description">Automatically reload the page if connection is lost</div>
-                            <input type="checkbox" class="setting-input setting-checkbox" data-path="advanced.autoReload">
-                        </div>
-                    </div>
-                </div>
+                </div>                
 
                 <!-- JSON Editor -->
                 <div class="json-editor-container" data-section="json">

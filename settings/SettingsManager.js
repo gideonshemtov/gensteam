@@ -39,19 +39,6 @@ class SettingsManager {
               minimum: 30,
               maximum: 100,
               description: 'Width of the button panel in pixels'
-            },
-            theme: {
-              type: 'string',
-              enum: ['dark', 'light', 'auto'],
-              default: 'dark',
-              description: 'Application theme preference'
-            },
-            fontSize: {
-              type: 'number',
-              default: 14,
-              minimum: 10,
-              maximum: 24,
-              description: 'Base font size for the application'
             }
           },
           additionalProperties: false
@@ -63,23 +50,6 @@ class SettingsManager {
               type: 'string',
               default: 'https://www.genesismud.org/play',
               description: 'Default URL to load when the application starts'
-            },
-            autoConnect: {
-              type: 'boolean',
-              default: true,
-              description: 'Automatically connect to the game on startup'
-            },
-            commandHistory: {
-              type: 'boolean',
-              default: true,
-              description: 'Save and recall command history'
-            },
-            maxHistoryItems: {
-              type: 'number',
-              default: 100,
-              minimum: 10,
-              maximum: 1000,
-              description: 'Maximum number of commands to remember'
             }
           },
           additionalProperties: false
@@ -158,37 +128,6 @@ class SettingsManager {
               minimum: 600,
               maximum: 2160,
               description: 'Default window height'
-            },
-            rememberSize: {
-              type: 'boolean',
-              default: true,
-              description: 'Remember window size between sessions'
-            },
-            rememberPosition: {
-              type: 'boolean',
-              default: true,
-              description: 'Remember window position between sessions'
-            }
-          },
-          additionalProperties: false
-        },
-        advanced: {
-          type: 'object',
-          properties: {
-            enableDevTools: {
-              type: 'boolean',
-              default: false,
-              description: 'Enable developer tools in production'
-            },
-            debugLogging: {
-              type: 'boolean',
-              default: false,
-              description: 'Enable debug logging to console'
-            },
-            autoReload: {
-              type: 'boolean',
-              default: false,
-              description: 'Automatically reload the page if connection is lost'
             }
           },
           additionalProperties: false
@@ -216,6 +155,7 @@ class SettingsManager {
   }
 
   load() {
+    console.log('Loading settings from', this.settingsPath);
     try {
       if (fs.existsSync(this.settingsPath)) {
         const raw = fs.readFileSync(this.settingsPath, 'utf-8');
