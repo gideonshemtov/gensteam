@@ -18,7 +18,12 @@
     "files": [
       "main.js",
       "index.js",
-      "package.json"
+      "package.json",
+      "settings/**/*",
+      "js/**/*",
+      "assets/**/*",
+      "styles/**/*",
+      "scripts/**/*"
     ],
     "mac": { "category": "public.app-category.games" },
     "win": { "target": "nsis" },
