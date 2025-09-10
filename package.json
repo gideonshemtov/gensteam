@@ -15,9 +15,19 @@
   "build": {
     "appId": "org.genesis.wrapper",
     "productName": "GenesisClient",
-    "mac": { "category": "public.app-category.games" },
-    "win": { "target": "nsis" },
-    "linux": { "target": "AppImage" }
+    "icon": "assets/icon",
+    "mac": { 
+      "category": "public.app-category.games",
+      "icon": "assets/icon.png"
+    },
+    "win": { 
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "linux": { 
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    }
   },
   "dependencies": {
     "ajv": "^8.12.0"
