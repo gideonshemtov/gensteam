@@ -42,6 +42,28 @@ function createMenu(win) {
             Menu.setApplicationMenu(menu);
           }
         },
+        {
+          label: 'Hide Menu Bar',
+          type: 'checkbox',
+          checked: settings.ui.hideMenuBar,
+          click: () => {
+            const currentValue = settingsManager.get('ui.hideMenuBar');
+            const newValue = !currentValue;
+            settingsManager.set('ui.hideMenuBar', newValue);
+            
+            // Apply the change immediately
+            win.setAutoHideMenuBar(newValue);
+            if (newValue) {
+              win.setMenuBarVisibility(false);
+            } else {
+              win.setMenuBarVisibility(true);
+            }
+            
+            // Update the menu item
+            const menu = createMenu(win);
+            Menu.setApplicationMenu(menu);
+          }
+        },
         { type: 'separator' },
         {
           label: 'Preferences...',
@@ -150,7 +172,7 @@ function createWindow() {
     width: settings.window.width,
     height: settings.window.height,
     backgroundColor: '#000000',
-    autoHideMenuBar: false, // Show menu bar so users can access preferences
+    autoHideMenuBar: settings.ui.hideMenuBar, // Use setting to control menu bar visibility
     webPreferences: {
       // Keep the remote site sandboxed for safety
       nodeIntegration: false,
@@ -172,6 +194,17 @@ function createWindow() {
     if (newSettings.ui.showButtonPanel !== oldSettings.ui.showButtonPanel) {
       const menu = createMenu(win);
       Menu.setApplicationMenu(menu);
+    }
+
+    // Update menu bar visibility if setting changed
+    if (newSettings.ui.hideMenuBar !== oldSettings.ui.hideMenuBar) {
+      win.setAutoHideMenuBar(newSettings.ui.hideMenuBar);
+      // Force menu bar to update immediately
+      if (newSettings.ui.hideMenuBar) {
+        win.setMenuBarVisibility(false);
+      } else {
+        win.setMenuBarVisibility(true);
+      }
     }
 
     // Update button panel with new settings

@@ -16,15 +16,15 @@
     "appId": "org.genesis.wrapper",
     "productName": "GenesisClient",
     "icon": "assets/icon",
-    "mac": { 
+    "mac": {
       "category": "public.app-category.games",
       "icon": "assets/icon.png"
     },
-    "win": { 
+    "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
     },
-    "linux": { 
+    "linux": {
       "target": "AppImage",
       "icon": "assets/icon.png"
     }
@@ -37,4 +37,3 @@
     "electron-builder": "26.0.19"
   }
 }
-

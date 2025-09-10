@@ -39,6 +39,11 @@ class SettingsManager {
               minimum: 30,
               maximum: 100,
               description: 'Width of the button panel in pixels'
+            },
+            hideMenuBar: {
+              type: 'boolean',
+              default: false,
+              description: 'Hide the menu bar (press Alt to show temporarily)'
             }
           },
           additionalProperties: false
