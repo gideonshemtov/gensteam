@@ -1,9 +1,9 @@
 {
   "name": "genesis-electron",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Genesis MUD desktop client",
   "main": "main.js",
-  "author": "You",
+  "author": "Genesis Mud",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -21,8 +21,18 @@
       "icon": "assets/icon.png"
     },
     "win": {
-      "target": "nsis",
+      "target": {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
       "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "GenesisClient"
     },
     "linux": {
       "target": "AppImage",
