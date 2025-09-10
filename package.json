@@ -1,6 +1,6 @@
 {
   "name": "genesis-electron",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Genesis MUD desktop client",
   "main": "main.js",
   "author": "You",
