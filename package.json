@@ -15,21 +15,6 @@
   "build": {
     "appId": "org.genesis.wrapper",
     "productName": "GenesisClient",
-    "files": [
-      "main.js",
-      "index.js", 
-      "package.json",
-      "settings/**/*",
-      "js/**/*",
-      "assets/**/*",
-      "styles/**/*",
-      "scripts/**/*",
-      "node_modules/ajv/**/*",
-      "node_modules/fast-deep-equal/**/*",
-      "node_modules/fast-uri/**/*",
-      "node_modules/json-schema-traverse/**/*",
-      "node_modules/require-from-string/**/*"
-    ],
     "mac": { "category": "public.app-category.games" },
     "win": { "target": "nsis" },
     "linux": { "target": "AppImage" }
