@@ -8,6 +8,7 @@ const SettingsWindow = require('./settings/SettingsWindow');
 // Initialize settings manager
 let settingsManager;
 let settingsWindow;
+let isUpdatingMenu = false; // Flag to prevent recursive menu updates
 
 const START_URL = 'https://www.genesismud.org/play';
 
@@ -24,6 +25,8 @@ function createMenu(win) {
           type: 'checkbox',
           checked: settings.ui.showButtonPanel,
           click: () => {
+            if (isUpdatingMenu) return; // Prevent recursive updates
+            
             const currentValue = settingsManager.get('ui.showButtonPanel');
             settingsManager.set('ui.showButtonPanel', !currentValue);
             
@@ -37,9 +40,16 @@ function createMenu(win) {
               console.error('Failed to toggle button panel:', err);
             });
             
-            // Update the menu item
-            const menu = createMenu(win);
-            Menu.setApplicationMenu(menu);
+            // Update menu immediately for this specific change
+            isUpdatingMenu = true;
+            setTimeout(() => {
+              try {
+                const menu = createMenu(win);
+                Menu.setApplicationMenu(menu);
+              } finally {
+                isUpdatingMenu = false;
+              }
+            }, 10);
           }
         },
         {
@@ -47,11 +57,13 @@ function createMenu(win) {
           type: 'checkbox',
           checked: settings.ui.hideMenuBar,
           click: () => {
+            if (isUpdatingMenu) return; // Prevent recursive updates
+            
             const currentValue = settingsManager.get('ui.hideMenuBar');
             const newValue = !currentValue;
             settingsManager.set('ui.hideMenuBar', newValue);
             
-            // Apply the change immediately
+            // Apply the change immediately without updating the full menu
             win.setAutoHideMenuBar(newValue);
             if (newValue) {
               win.setMenuBarVisibility(false);
@@ -59,9 +71,8 @@ function createMenu(win) {
               win.setMenuBarVisibility(true);
             }
             
-            // Update the menu item
-            const menu = createMenu(win);
-            Menu.setApplicationMenu(menu);
+            // Don't update menu for menu bar changes - it causes loops
+            // The setting is persisted, menu will be correct on next app start
           }
         },
         { type: 'separator' },
@@ -191,12 +202,6 @@ function createWindow() {
 
   // Listen for settings changes to update UI
   settingsManager.subscribe((newSettings, oldSettings) => {
-    // Update menu if button panel setting changed
-    if (newSettings.ui.showButtonPanel !== oldSettings.ui.showButtonPanel) {
-      const menu = createMenu(win);
-      Menu.setApplicationMenu(menu);
-    }
-
     // Update menu bar visibility if setting changed
     if (newSettings.ui.hideMenuBar !== oldSettings.ui.hideMenuBar) {
       win.setAutoHideMenuBar(newSettings.ui.hideMenuBar);
@@ -206,6 +211,9 @@ function createWindow() {
       } else {
         win.setMenuBarVisibility(true);
       }
+      
+      // Don't update the menu itself - just the visibility
+      // The menu checkbox state will be correct on next access
     }
 
     // Update button panel with new settings
@@ -285,7 +293,21 @@ app.whenReady().then(() => {
   // Set up IPC handlers for timer settings
   ipcMain.handle('save-timer-settings', (event, newSettings) => {
     try {
-      settingsManager.save(newSettings);
+      // Save timer settings without triggering full UI updates
+      const fs = require('fs');
+      const settingsPath = settingsManager.getSettingsPath();
+      
+      // Validate the settings first
+      if (settingsManager.validate && !settingsManager.validate(newSettings)) {
+        throw new Error('Invalid timer settings');
+      }
+      
+      // Write settings directly to avoid subscriber loops
+      fs.writeFileSync(settingsPath, JSON.stringify(newSettings, null, 2));
+      
+      // Update the in-memory settings without triggering subscribers
+      settingsManager.settings = newSettings;
+      
       return { success: true };
     } catch (error) {
       console.error('Failed to save timer settings:', error);

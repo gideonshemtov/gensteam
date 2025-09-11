@@ -6,6 +6,7 @@ class ButtonPanel {
     this.isInitialized = false;
     this.timerManager = null;
     this.showingTimerPanel = false;
+    this.clickOutsideHandler = null;
   }
 
   init(settings) {
@@ -433,6 +434,9 @@ class ButtonPanel {
       });
     });
 
+    // Add click outside to close functionality
+    this.setupClickOutsideHandler();
+
     this.updateTimerList();
   }
 
@@ -526,6 +530,38 @@ class ButtonPanel {
       timerPanel.remove();
     }
     this.showingTimerPanel = false;
+    
+    // Remove the click outside handler
+    this.removeClickOutsideHandler();
+  }
+
+  setupClickOutsideHandler() {
+    // Remove any existing handler first
+    this.removeClickOutsideHandler();
+    
+    // Create the handler function
+    this.clickOutsideHandler = (event) => {
+      const timerPanel = document.getElementById('timer-panel');
+      const timerButton = document.getElementById('timer-toggle-btn');
+      
+      if (timerPanel && 
+          !timerPanel.contains(event.target) && 
+          !timerButton.contains(event.target)) {
+        this.toggleTimerPanel();
+      }
+    };
+    
+    // Add the event listener with a small delay to avoid immediate closing
+    setTimeout(() => {
+      document.addEventListener('click', this.clickOutsideHandler, true);
+    }, 100);
+  }
+
+  removeClickOutsideHandler() {
+    if (this.clickOutsideHandler) {
+      document.removeEventListener('click', this.clickOutsideHandler, true);
+      this.clickOutsideHandler = null;
+    }
   }
 
   // Callback for timer manager to save settings
@@ -590,6 +626,7 @@ class ButtonPanel {
     }
     
     this.hideTimerPanel();
+    this.removeClickOutsideHandler();
     
     const mainDiv = document.getElementById('main');
     if (mainDiv) {
