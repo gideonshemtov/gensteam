@@ -4,6 +4,8 @@ class ButtonPanel {
     this.panel = null;
     this.settings = null;
     this.isInitialized = false;
+    this.timerManager = null;
+    this.showingTimerPanel = false;
   }
 
   init(settings) {
@@ -11,6 +13,13 @@ class ButtonPanel {
     this.injectStyles();
     this.createPanel();
     this.updateLayout();
+    
+    // Initialize timer manager
+    if (typeof TimerManager !== 'undefined') {
+      this.timerManager = new TimerManager();
+      this.timerManager.init(settings);
+    }
+    
     this.isInitialized = true;
   }
 
@@ -40,6 +49,183 @@ class ButtonPanel {
 
         .custom-button-bar.hidden {
           display: none !important;
+        }
+
+        .timer-panel {
+          position: fixed;
+          left: calc(var(--button-panel-width) + 1.5rem);
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(0, 0, 0, 0.95);
+          border: 1px solid #555;
+          border-radius: 0.75rem;
+          padding: 1rem;
+          min-width: 300px;
+          max-width: 400px;
+          z-index: 1001;
+          backdrop-filter: blur(8px);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+          color: #fff;
+          font-size: 0.9rem;
+        }
+
+        .timer-panel.hidden {
+          display: none !important;
+        }
+
+        .timer-panel h3 {
+          margin: 0 0 1rem 0;
+          color: #fff;
+          font-size: 1.1rem;
+          border-bottom: 1px solid #555;
+          padding-bottom: 0.5rem;
+        }
+
+        .timer-controls {
+          margin-bottom: 1rem;
+          padding: 0.75rem;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 0.5rem;
+          border: 1px solid #444;
+        }
+
+        .timer-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .timer-input-row {
+          display: flex;
+          gap: 0.5rem;
+          align-items: center;
+        }
+
+        .timer-input-row label {
+          min-width: 80px;
+          font-size: 0.85rem;
+          color: #ccc;
+        }
+
+        .timer-input {
+          flex: 1;
+          padding: 0.4rem 0.6rem;
+          background: #333;
+          border: 1px solid #555;
+          border-radius: 0.25rem;
+          color: #fff;
+          font-size: 0.85rem;
+        }
+
+        .timer-input:focus {
+          outline: none;
+          border-color: #007ACC;
+          background: #404040;
+        }
+
+        .timer-buttons {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .timer-btn {
+          padding: 0.4rem 0.8rem;
+          border: 1px solid;
+          border-radius: 0.25rem;
+          cursor: pointer;
+          font-size: 0.8rem;
+          transition: all 0.2s ease;
+          flex: 1;
+        }
+
+        .timer-btn.primary {
+          background: #007ACC;
+          color: white;
+          border-color: #007ACC;
+        }
+
+        .timer-btn.primary:hover {
+          background: #005a9e;
+        }
+
+        .timer-btn.secondary {
+          background: #666;
+          color: white;
+          border-color: #666;
+        }
+
+        .timer-btn.secondary:hover {
+          background: #777;
+        }
+
+        .timer-list {
+          max-height: 200px;
+          overflow-y: auto;
+        }
+
+        .timer-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid #444;
+          border-radius: 0.25rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .timer-item.active {
+          border-color: #4CAF50;
+          background: rgba(76, 175, 80, 0.1);
+        }
+
+        .timer-info {
+          flex: 1;
+          font-size: 0.8rem;
+        }
+
+        .timer-name {
+          font-weight: bold;
+          color: #fff;
+        }
+
+        .timer-details {
+          color: #ccc;
+          font-size: 0.75rem;
+          margin-top: 0.25rem;
+        }
+
+        .timer-item-buttons {
+          display: flex;
+          gap: 0.25rem;
+        }
+
+        .timer-item-btn {
+          padding: 0.2rem 0.4rem;
+          font-size: 0.7rem;
+          border: 1px solid;
+          border-radius: 0.2rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .timer-item-btn.start {
+          background: #4CAF50;
+          color: white;
+          border-color: #4CAF50;
+        }
+
+        .timer-item-btn.stop {
+          background: #f44336;
+          color: white;
+          border-color: #f44336;
+        }
+
+        .timer-item-btn.delete {
+          background: #9E9E9E;
+          color: white;
+          border-color: #9E9E9E;
         }
 
         .custom-button {
@@ -99,6 +285,30 @@ class ButtonPanel {
 
     this.panel.innerHTML = '';
     
+    // Add timer button at the top
+    const timerButton = document.createElement('button');
+    timerButton.className = 'custom-button';
+    timerButton.id = 'timer-toggle-btn';
+    timerButton.innerHTML = '⏰';
+    timerButton.title = this.settings.buttons.showTooltips ? 'Toggle Timer Panel' : '';
+    timerButton.style.setProperty('--button-color', '#FF9800');
+    timerButton.style.borderColor = '#FF9800';
+    
+    const size = this.calculateButtonSize();
+    timerButton.style.width = size;
+    timerButton.style.height = size;
+    
+    timerButton.addEventListener('click', () => this.toggleTimerPanel());
+    this.panel.appendChild(timerButton);
+    
+    // Add separator
+    const separator = document.createElement('div');
+    separator.style.height = '1px';
+    separator.style.background = '#555';
+    separator.style.margin = '0.5rem 0';
+    this.panel.appendChild(separator);
+    
+    // Add regular command buttons
     this.settings.buttons.customButtons.forEach((btnConfig, index) => {
       const button = document.createElement('button');
       button.className = 'custom-button';
@@ -111,7 +321,6 @@ class ButtonPanel {
       button.style.borderColor = btnConfig.color;
       
       // Dynamic sizing based on panel width
-      const size = this.calculateButtonSize();
       button.style.width = size;
       button.style.height = size;
       
@@ -151,7 +360,186 @@ class ButtonPanel {
       this.createButtons();
     }
     
+    if (this.timerManager) {
+      this.timerManager.updateSettings(newSettings);
+    }
+    
     this.updateLayout();
+  }
+
+  toggleTimerPanel() {
+    this.showingTimerPanel = !this.showingTimerPanel;
+    
+    if (this.showingTimerPanel) {
+      this.createTimerPanel();
+    } else {
+      this.hideTimerPanel();
+    }
+  }
+
+  createTimerPanel() {
+    // Remove existing timer panel
+    const existing = document.getElementById('timer-panel');
+    if (existing) existing.remove();
+
+    const timerPanel = document.createElement('div');
+    timerPanel.id = 'timer-panel';
+    timerPanel.className = 'timer-panel';
+    
+    timerPanel.innerHTML = `
+      <h3>⏰ Command Timers</h3>
+      
+      <div class="timer-controls">
+        <div class="timer-input-group">
+          <div class="timer-input-row">
+            <label>Name:</label>
+            <input type="text" id="timer-name" class="timer-input" placeholder="Timer name" value="">
+          </div>
+          <div class="timer-input-row">
+            <label>Interval:</label>
+            <input type="number" id="timer-interval" class="timer-input" placeholder="5" min="1" max="3600" value="30">
+            <span style="color: #ccc; font-size: 0.8rem; margin-left: 0.5rem;">seconds</span>
+          </div>
+          <div class="timer-input-row">
+            <label>Command:</label>
+            <input type="text" id="timer-command" class="timer-input" placeholder="look" value="">
+          </div>
+        </div>
+        
+        <div class="timer-buttons">
+          <button class="timer-btn primary" id="create-timer-btn">Create Timer</button>
+          <button class="timer-btn secondary" id="close-timer-panel-btn">Close</button>
+        </div>
+      </div>
+
+      <div class="timer-list" id="timer-list">
+        <!-- Timer items will be populated here -->
+      </div>
+    `;
+
+    document.body.appendChild(timerPanel);
+
+    // Add event listeners
+    document.getElementById('create-timer-btn').addEventListener('click', () => this.createNewTimer());
+    document.getElementById('close-timer-panel-btn').addEventListener('click', () => this.toggleTimerPanel());
+    
+    // Add enter key support for inputs
+    const inputs = timerPanel.querySelectorAll('.timer-input');
+    inputs.forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.createNewTimer();
+        }
+      });
+    });
+
+    this.updateTimerList();
+  }
+
+  createNewTimer() {
+    const nameInput = document.getElementById('timer-name');
+    const intervalInput = document.getElementById('timer-interval');
+    const commandInput = document.getElementById('timer-command');
+
+    const name = nameInput.value.trim() || `Timer ${Date.now()}`;
+    const interval = parseInt(intervalInput.value) || 30;
+    const command = commandInput.value.trim();
+
+    if (!command) {
+      alert('Please enter a command for the timer.');
+      return;
+    }
+
+    if (interval < 1 || interval > 3600) {
+      alert('Interval must be between 1 and 3600 seconds.');
+      return;
+    }
+
+    if (this.timerManager) {
+      const timerId = this.timerManager.createTimer(interval, command, name);
+      if (timerId) {
+        // Clear inputs
+        nameInput.value = '';
+        commandInput.value = '';
+        intervalInput.value = '30';
+        
+        this.updateTimerList();
+      }
+    }
+  }
+
+  updateTimerList() {
+    const timerList = document.getElementById('timer-list');
+    if (!timerList || !this.timerManager) return;
+
+    const timers = this.timerManager.getAllTimers();
+    
+    if (timers.length === 0) {
+      timerList.innerHTML = '<div style="text-align: center; color: #888; padding: 1rem;">No timers created</div>';
+      return;
+    }
+
+    timerList.innerHTML = timers.map(timer => `
+      <div class="timer-item ${timer.isRunning ? 'active' : ''}">
+        <div class="timer-info">
+          <div class="timer-name">${timer.name}</div>
+          <div class="timer-details">"${timer.command}" every ${timer.interval}s</div>
+        </div>
+        <div class="timer-item-buttons">
+          ${timer.isRunning 
+            ? `<button class="timer-item-btn stop" onclick="window.buttonPanel.stopTimer(${timer.id})">Stop</button>`
+            : `<button class="timer-item-btn start" onclick="window.buttonPanel.startTimer(${timer.id})">Start</button>`
+          }
+          <button class="timer-item-btn delete" onclick="window.buttonPanel.deleteTimer(${timer.id})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  startTimer(timerId) {
+    if (this.timerManager) {
+      const timer = this.timerManager.getAllTimers().find(t => t.id === timerId);
+      if (timer) {
+        this.timerManager.startTimer(timerId, timer.interval, timer.command);
+        this.updateTimerList();
+      }
+    }
+  }
+
+  stopTimer(timerId) {
+    if (this.timerManager) {
+      this.timerManager.stopTimer(timerId);
+      this.updateTimerList();
+    }
+  }
+
+  deleteTimer(timerId) {
+    if (this.timerManager && confirm('Are you sure you want to delete this timer?')) {
+      this.timerManager.deleteTimer(timerId);
+      this.updateTimerList();
+    }
+  }
+
+  hideTimerPanel() {
+    const timerPanel = document.getElementById('timer-panel');
+    if (timerPanel) {
+      timerPanel.remove();
+    }
+    this.showingTimerPanel = false;
+  }
+
+  // Callback for timer manager to save settings
+  onTimerSettingsChanged(settings) {
+    // This will be used to sync timer settings back to main process
+    if (window.electronAPI && window.electronAPI.saveTimerSettings) {
+      window.electronAPI.saveTimerSettings(settings).then(result => {
+        if (!result.success) {
+          console.error('Failed to save timer settings:', result.error);
+        }
+      }).catch(err => {
+        console.error('Error saving timer settings:', err);
+      });
+    }
   }
 
   updateLayout() {
@@ -195,6 +583,13 @@ class ButtonPanel {
       this.panel.remove();
       this.panel = null;
     }
+    
+    if (this.timerManager) {
+      this.timerManager.destroy();
+      this.timerManager = null;
+    }
+    
+    this.hideTimerPanel();
     
     const mainDiv = document.getElementById('main');
     if (mainDiv) {

@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, shell, session, Menu } = require('electron');
+const { app, BrowserWindow, shell, session, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const SettingsManager = require('./settings/SettingsManager');
@@ -178,6 +178,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      preload: path.join(__dirname, 'timer-preload.js')
     },
   });
 
@@ -219,8 +220,9 @@ function createWindow() {
 
   // Disable beforeunload handlers that might prevent closing
   win.webContents.once('did-finish-load', () => {
-    // Read the ButtonPanel class file
+    // Read the ButtonPanel and TimerManager class files
     const buttonPanelCode = require('fs').readFileSync(path.join(__dirname, 'js/ButtonPanel.js'), 'utf8');
+    const timerManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/TimerManager.js'), 'utf8');
     
     win.webContents.executeJavaScript(`
       // Override beforeunload to prevent it from blocking window close
@@ -231,6 +233,9 @@ function createWindow() {
       
       // Also override the onbeforeunload property
       window.onbeforeunload = null;
+      
+      // Load TimerManager class first
+      ${timerManagerCode}
       
       // Load ButtonPanel class
       ${buttonPanelCode}
@@ -276,6 +281,17 @@ app.whenReady().then(() => {
   // Initialize settings manager and settings window
   settingsManager = new SettingsManager();
   settingsWindow = new SettingsWindow(settingsManager);
+  
+  // Set up IPC handlers for timer settings
+  ipcMain.handle('save-timer-settings', (event, newSettings) => {
+    try {
+      settingsManager.save(newSettings);
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to save timer settings:', error);
+      return { success: false, error: error.message };
+    }
+  });
   
   // Deny any permission prompts by default (camera/mic/etc.)
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));

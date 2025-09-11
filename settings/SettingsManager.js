@@ -136,6 +136,30 @@ class SettingsManager {
             }
           },
           additionalProperties: false
+        },
+        timers: {
+          type: 'object',
+          properties: {
+            activeTimers: {
+              type: 'array',
+              default: [],
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number' },
+                  name: { type: 'string' },
+                  interval: { type: 'number', minimum: 1, maximum: 3600 },
+                  command: { type: 'string' },
+                  isActive: { type: 'boolean' },
+                  createdAt: { type: 'number' }
+                },
+                required: ['id', 'name', 'interval', 'command', 'isActive'],
+                additionalProperties: false
+              },
+              description: 'List of configured command timers'
+            }
+          },
+          additionalProperties: false
         }
       },
       additionalProperties: false
