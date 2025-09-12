@@ -93,6 +93,22 @@ function createMenu(win) {
           accelerator: 'CmdOrCtrl+R',
           click: () => {
             win.reload();
+            
+            // Re-setup beforeunload handlers after reload
+            win.webContents.once('did-finish-load', () => {
+              win.webContents.executeJavaScript(`
+                // Override beforeunload to prevent it from blocking window close
+                window.addEventListener('beforeunload', function(e) {
+                  e.preventDefault = function() {};
+                  delete e.returnValue;
+                }, true);
+                
+                // Also override the onbeforeunload property
+                window.onbeforeunload = null;
+              `).catch(err => {
+                console.error('Failed to setup beforeunload handlers after reload:', err);
+              });
+            });
           }
         },
         {
