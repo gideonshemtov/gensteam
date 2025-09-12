@@ -518,7 +518,7 @@ class ButtonPanel {
   }
 
   deleteTimer(timerId) {
-    if (this.timerManager && confirm('Are you sure you want to delete this timer?')) {
+    if (this.timerManager) {
       this.timerManager.deleteTimer(timerId);
       this.updateTimerList();
     }
