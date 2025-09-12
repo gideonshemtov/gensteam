@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, shell, session, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, session, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const SettingsManager = require('./settings/SettingsManager');
@@ -135,6 +135,28 @@ function createMenu(win) {
           accelerator: 'CmdOrCtrl+W',
           click: () => {
             win.close();
+          }
+        }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About GenesisClient',
+          click: () => {
+            const { dialog } = require('electron');
+            const packageJson = require('./package.json');
+            
+            dialog.showMessageBox(win, {
+              type: 'info',
+              title: 'About GenesisClient',
+              message: `GenesisClient v${packageJson.version}`,
+              detail: `${packageJson.description}\n\nA desktop wrapper for Genesis MUD built with Electron.\n\nAuthor: ${packageJson.author}\nLicense: ${packageJson.license}`,
+              buttons: ['OK'],
+              defaultId: 0,
+              icon: path.join(__dirname, 'assets/icon.png')
+            });
           }
         }
       ]
