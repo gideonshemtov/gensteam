@@ -53,7 +53,7 @@ function createMenu(win) {
           }
         },
         {
-          label: 'Hide Menu Bar',
+          label: 'Hide Menu Bar (Press Alt to show)',
           type: 'checkbox',
           checked: settings.ui.hideMenuBar,
           click: () => {
