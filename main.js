@@ -298,6 +298,13 @@ function createWindow() {
     }
   });
 
+  // Close settings window when main window is closed
+  win.on('closed', () => {
+    if (settingsWindow && settingsWindow.isOpen()) {
+      settingsWindow.close();
+    }
+  });
+
   return win;
 }
 
