@@ -143,14 +143,14 @@ function createMenu(win) {
       label: 'Help',
       submenu: [
         {
-          label: 'About GenesisClient',
+          label: 'About',
           click: () => {
             const { dialog } = require('electron');
             const packageJson = require('./package.json');
             
             dialog.showMessageBox(win, {
               type: 'info',
-              title: 'About GenesisClient',
+              title: 'GenesisClient',
               message: `GenesisClient v${packageJson.version}`,
               detail: `${packageJson.description}\n\nA desktop wrapper for Genesis MUD built with Electron.\n\nAuthor: ${packageJson.author}\nLicense: ${packageJson.license}`,
               buttons: ['OK'],
