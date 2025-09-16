@@ -125,6 +125,16 @@ class ButtonPanel {
           background: #404040;
         }
 
+        .timer-input.error {
+          border-color: #ff4444;
+          background: rgba(255, 68, 68, 0.1);
+        }
+
+        .timer-input.error:focus {
+          border-color: #ff4444;
+          background: rgba(255, 68, 68, 0.15);
+        }
+
         .timer-buttons {
           display: flex;
           gap: 0.5rem;
@@ -432,6 +442,11 @@ class ButtonPanel {
           this.createNewTimer();
         }
       });
+      
+      // Clear error state when user starts typing
+      input.addEventListener('input', (e) => {
+        e.target.classList.remove('error');
+      });
     });
 
     // Add click outside to close functionality
@@ -445,17 +460,33 @@ class ButtonPanel {
     const intervalInput = document.getElementById('timer-interval');
     const commandInput = document.getElementById('timer-command');
 
+    // Clear previous error states
+    nameInput.classList.remove('error');
+    intervalInput.classList.remove('error');
+    commandInput.classList.remove('error');
+
     const name = nameInput.value.trim() || `Timer ${Date.now()}`;
     const interval = parseInt(intervalInput.value) || 30;
     const command = commandInput.value.trim();
 
+    let hasError = false;
+
+    // Validate command (required)
     if (!command) {
-      alert('Please enter a command for the timer.');
-      return;
+      commandInput.classList.add('error');
+      commandInput.focus();
+      hasError = true;
     }
 
+    // Validate interval range
     if (interval < 1 || interval > 3600) {
-      alert('Interval must be between 1 and 3600 seconds.');
+      intervalInput.classList.add('error');
+      if (!hasError) intervalInput.focus(); // Only focus if no other error
+      hasError = true;
+    }
+
+    // If there are errors, don't create the timer
+    if (hasError) {
       return;
     }
 
