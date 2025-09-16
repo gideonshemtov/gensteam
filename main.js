@@ -12,6 +12,38 @@ let isUpdatingMenu = false; // Flag to prevent recursive menu updates
 
 const START_URL = 'https://www.genesismud.org/play';
 
+// Function to initialize button panel and timer manager
+function initializeButtonPanelAndTimers(win, settings) {
+  // Read the ButtonPanel and TimerManager class files
+  const buttonPanelCode = require('fs').readFileSync(path.join(__dirname, 'js/ButtonPanel.js'), 'utf8');
+  const timerManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/TimerManager.js'), 'utf8');
+  
+  return win.webContents.executeJavaScript(`
+    // Load TimerManager class first
+    ${timerManagerCode}
+    
+    // Load ButtonPanel class
+    ${buttonPanelCode}
+    
+    // Initialize button panel
+    window.buttonPanel = new ButtonPanel();
+    
+    // Wait for page to be ready, then initialize
+    function initButtonPanel() {
+      const clientDiv = document.getElementById('client');
+      const mainDiv = document.getElementById('main');
+      
+      if (clientDiv && mainDiv) {
+        window.buttonPanel.init(${JSON.stringify(settings)});
+      } else {
+        setTimeout(initButtonPanel, 500);
+      }
+    }
+    
+    setTimeout(initButtonPanel, 10);
+  `);
+}
+
 // Create menu template
 function createMenu(win) {
   const settings = settingsManager.get();
@@ -94,8 +126,11 @@ function createMenu(win) {
           click: () => {
             win.reload();
             
-            // Re-setup beforeunload handlers after reload
+            // Re-setup everything after reload
             win.webContents.once('did-finish-load', () => {
+              // Get current settings
+              const currentSettings = settingsManager.get();
+              
               win.webContents.executeJavaScript(`
                 // Override beforeunload to prevent it from blocking window close
                 window.addEventListener('beforeunload', function(e) {
@@ -108,6 +143,26 @@ function createMenu(win) {
               `).catch(err => {
                 console.error('Failed to setup beforeunload handlers after reload:', err);
               });
+              
+              // Reinitialize button panel and timer manager after a short delay
+              setTimeout(() => {
+                initializeButtonPanelAndTimers(win, currentSettings).then(() => {
+                  // Update the menu to reflect current settings after button panel is initialized
+                  setTimeout(() => {
+                    if (!isUpdatingMenu) {
+                      isUpdatingMenu = true;
+                      try {
+                        const menu = createMenu(win);
+                        Menu.setApplicationMenu(menu);
+                      } finally {
+                        isUpdatingMenu = false;
+                      }
+                    }
+                  }, 500);
+                }).catch(err => {
+                  console.error('Failed to reinitialize button panel after reload:', err);
+                });
+              }, 100);
             });
           }
         },
@@ -266,10 +321,6 @@ function createWindow() {
 
   // Disable beforeunload handlers that might prevent closing
   win.webContents.once('did-finish-load', () => {
-    // Read the ButtonPanel and TimerManager class files
-    const buttonPanelCode = require('fs').readFileSync(path.join(__dirname, 'js/ButtonPanel.js'), 'utf8');
-    const timerManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/TimerManager.js'), 'utf8');
-    
     win.webContents.executeJavaScript(`
       // Override beforeunload to prevent it from blocking window close
       window.addEventListener('beforeunload', function(e) {
@@ -279,30 +330,12 @@ function createWindow() {
       
       // Also override the onbeforeunload property
       window.onbeforeunload = null;
-      
-      // Load TimerManager class first
-      ${timerManagerCode}
-      
-      // Load ButtonPanel class
-      ${buttonPanelCode}
-      
-      // Initialize button panel
-      window.buttonPanel = new ButtonPanel();
-      
-      // Wait for page to be ready, then initialize
-      function initButtonPanel() {
-        const clientDiv = document.getElementById('client');
-        const mainDiv = document.getElementById('main');
-        
-        if (clientDiv && mainDiv) {
-          window.buttonPanel.init(${JSON.stringify(settings)});
-        } else {
-          setTimeout(initButtonPanel, 500);
-        }
-      }
-      
-      setTimeout(initButtonPanel, 10);
     `);
+    
+    // Initialize button panel and timer manager
+    initializeButtonPanelAndTimers(win, settings).catch(err => {
+      console.error('Failed to initialize button panel:', err);
+    });
   });
 
   // Open all new windows/links in the external browser (not inside the app)
