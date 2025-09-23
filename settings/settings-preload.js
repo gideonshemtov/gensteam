@@ -13,5 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     exportJson: () => ipcRenderer.invoke('settings:exportJson'),
     importJson: (jsonString) => ipcRenderer.invoke('settings:importJson', jsonString),
     getPath: () => ipcRenderer.invoke('settings:getPath')
-  }
+  },
+  
+  // Sound testing API for settings window
+  testSound: (filename, volume = 1.0) => ipcRenderer.invoke('play-sound', filename, volume),
+  getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds')
 });

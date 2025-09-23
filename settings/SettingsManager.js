@@ -160,6 +160,86 @@ class SettingsManager {
             }
           },
           additionalProperties: false
+        },
+        sounds: {
+          type: 'object',
+          properties: {
+            enabled: {
+              type: 'boolean',
+              default: true,
+              description: 'Enable/disable sound playback'
+            },
+            masterVolume: {
+              type: 'number',
+              default: 1.0,
+              minimum: 0.0,
+              maximum: 1.0,
+              description: 'Master volume for all sounds (0.0 to 1.0)'
+            },
+            soundMappings: {
+              type: 'array',
+              default: [
+                {
+                  name: 'alert',
+                  filename: 'alert.wav',
+                  volume: 1.0,
+                  description: 'General alert sound'
+                },
+                {
+                  name: 'combat',
+                  filename: 'combat.wav',
+                  volume: 0.8,
+                  description: 'Combat-related notifications'
+                },
+                {
+                  name: 'whisper',
+                  filename: 'whisper.wav',
+                  volume: 0.9,
+                  description: 'Private message notifications'
+                },
+                {
+                  name: 'death',
+                  filename: 'death.wav',
+                  volume: 1.0,
+                  description: 'Character death sound'
+                },
+                {
+                  name: 'level',
+                  filename: 'level.wav',
+                  volume: 1.0,
+                  description: 'Level up notification'
+                }
+              ],
+              items: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                    description: 'Unique name for the sound trigger'
+                  },
+                  filename: {
+                    type: 'string',
+                    description: 'Sound file name (relative to assets/sounds/)'
+                  },
+                  volume: {
+                    type: 'number',
+                    minimum: 0.0,
+                    maximum: 1.0,
+                    default: 1.0,
+                    description: 'Volume level for this sound (0.0 to 1.0)'
+                  },
+                  description: {
+                    type: 'string',
+                    description: 'Human-readable description of what triggers this sound'
+                  }
+                },
+                required: ['name', 'filename', 'volume'],
+                additionalProperties: false
+              },
+              description: 'Sound name to file mappings'
+            }
+          },
+          additionalProperties: false
         }
       },
       additionalProperties: false

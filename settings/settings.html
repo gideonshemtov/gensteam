@@ -365,6 +365,10 @@
                     <span class="sidebar-item-icon">🔘</span>
                     Custom Buttons
                 </div>
+                <div class="sidebar-item" data-section="sounds">
+                    <span class="sidebar-item-icon">🔊</span>
+                    Sound Settings
+                </div>
                 <div class="sidebar-item" data-section="window">
                     <span class="sidebar-item-icon">🪟</span>
                     Window
@@ -447,6 +451,53 @@
                             <label class="setting-label">Custom Buttons Configuration</label>
                             <div class="setting-description">Configure your custom command buttons (edit in JSON mode for full customization)</div>
                             <div class="button-list" id="buttonList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sound Settings -->
+                <div class="settings-section" data-section="sounds">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Sound Settings</div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Enable Sounds</label>
+                            <div class="setting-description">Enable or disable all sound playback for MUD triggers</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="sounds.enabled">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Master Volume</label>
+                            <div class="setting-description">Master volume control for all sounds (0.0 to 1.0)</div>
+                            <input type="number" class="setting-input" data-path="sounds.masterVolume" min="0" max="1" step="0.1">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Sound Mappings</label>
+                            <div class="setting-description">Configure sound names to file mappings. Place sound files in the assets/sounds/ directory. Use these names in your MUD triggers with mudAPI.playSound("soundName")</div>
+                            <div class="button-list" id="soundList"></div>
+                            <div style="margin-top: 15px;">
+                                <button class="btn" id="testSoundBtn">Test Sounds</button>
+                                <button class="btn secondary" id="addSoundBtn">Add Sound</button>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label class="setting-label">Usage in MUD Triggers</label>
+                            <div class="setting-description">
+                                <p style="margin-bottom: 10px;">Use the following JavaScript in your MUD client triggers to play sounds:</p>
+                                <div style="background: #1e1e1e; padding: 10px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 12px; color: #d4d4d4; border: 1px solid #3e3e42;">
+                                    <div style="color: #608b4e;">// Play a configured sound by name</div>
+                                    <div>mudAPI.playSound("alert");</div>
+                                    <div style="margin-top: 5px; color: #608b4e;">// Play a sound file directly with volume</div>
+                                    <div>mudAPI.playSoundFile("combat.wav", 0.8);</div>
+                                    <div style="margin-top: 5px; color: #608b4e;">// Test if sound is available</div>
+                                    <div><span style="color: #c586c0;">if</span> (<span style="color: #569cd6;">await</span> mudAPI.playSound("whisper")) {</div>
+                                    <div>&nbsp;&nbsp;<span style="color: #608b4e;">// Sound played successfully</span></div>
+                                    <div>}</div>
+                                </div>
+                                <p style="margin-top: 10px; font-size: 11px; color: #888;">Supported formats: .wav, .mp3, .ogg, .m4a, .aac, .flac</p>
+                            </div>
                         </div>
                     </div>
                 </div>

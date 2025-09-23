@@ -57,6 +57,15 @@ class SettingsRenderer {
       this.importSettings();
     });
 
+    // Sound-related event listeners
+    document.getElementById('testSoundBtn').addEventListener('click', () => {
+      this.testAllSounds();
+    });
+
+    document.getElementById('addSoundBtn').addEventListener('click', () => {
+      this.addSoundMapping();
+    });
+
     // Setting inputs change detection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('setting-input')) {
@@ -105,6 +114,9 @@ class SettingsRenderer {
 
     // Populate button list
     this.populateButtonList();
+
+    // Populate sound list
+    this.populateSoundList();
 
     // Populate JSON editor
     this.updateJsonEditor();
@@ -180,6 +192,11 @@ class SettingsRenderer {
     // Update button list if buttons changed
     if (path.startsWith('buttons.')) {
       this.populateButtonList();
+    }
+
+    // Update sound list if sounds changed
+    if (path.startsWith('sounds.')) {
+      this.populateSoundList();
     }
 
     // Update JSON editor if not in JSON section
@@ -331,6 +348,96 @@ class SettingsRenderer {
     });
   }
 
+  populateSoundList() {
+    const soundList = document.getElementById('soundList');
+    const sounds = this.currentSettings.sounds?.soundMappings || [];
+    
+    soundList.innerHTML = '';
+    sounds.forEach((sound, index) => {
+      const soundItem = document.createElement('div');
+      soundItem.className = 'button-item'; // Reuse button item styling
+      soundItem.innerHTML = `
+        <div class="button-preview" style="background: #4a90e2; border: 1px solid #4a90e2; font-size: 12px;">
+          🔊
+        </div>
+        <div class="button-info">
+          <div class="button-title">${sound.name} (${sound.filename})</div>
+          <div class="button-command">Volume: ${sound.volume} - ${sound.description || 'No description'}</div>
+        </div>
+        <button class="btn" onclick="window.settingsRenderer.testSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
+        <button class="btn danger" onclick="window.settingsRenderer.removeSoundMapping(${index})" style="margin-left: 5px; padding: 4px 8px; font-size: 11px;">Remove</button>
+      `;
+      soundList.appendChild(soundItem);
+    });
+  }
+
+  async testSound(soundName) {
+    try {
+      if (window.electronAPI && window.electronAPI.testSound) {
+        // Find the sound mapping
+        const sounds = this.currentSettings.sounds?.soundMappings || [];
+        const sound = sounds.find(s => s.name === soundName);
+        if (sound) {
+          const success = await window.electronAPI.testSound(sound.filename, sound.volume);
+          if (success) {
+            this.showSuccess(`Played sound: ${soundName}`);
+          } else {
+            this.showError(`Failed to play sound: ${soundName}. Check if the file exists in assets/sounds/`);
+          }
+        } else {
+          this.showError(`Sound mapping not found: ${soundName}`);
+        }
+      } else {
+        this.showError('Sound testing not available');
+      }
+    } catch (error) {
+      this.showError('Error testing sound: ' + error.message);
+    }
+  }
+
+  async testAllSounds() {
+    const sounds = this.currentSettings.sounds?.soundMappings || [];
+    if (sounds.length === 0) {
+      this.showError('No sounds configured to test');
+      return;
+    }
+
+    this.showSuccess(`Testing ${sounds.length} configured sounds...`);
+    
+    for (let i = 0; i < sounds.length; i++) {
+      const sound = sounds[i];
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait between sounds
+      await this.testSound(sound.name);
+    }
+  }
+
+  addSoundMapping() {
+    const sounds = this.currentSettings.sounds?.soundMappings || [];
+    const newSound = {
+      name: `sound${sounds.length + 1}`,
+      filename: 'newSound.wav',
+      volume: 1.0,
+      description: 'New sound mapping'
+    };
+    
+    sounds.push(newSound);
+    this.setNestedValue(this.currentSettings, 'sounds.soundMappings', sounds);
+    this.populateSoundList();
+    this.updateJsonEditor();
+    this.markAsChanged();
+  }
+
+  removeSoundMapping(index) {
+    const sounds = this.currentSettings.sounds?.soundMappings || [];
+    if (index >= 0 && index < sounds.length) {
+      sounds.splice(index, 1);
+      this.setNestedValue(this.currentSettings, 'sounds.soundMappings', sounds);
+      this.populateSoundList();
+      this.updateJsonEditor();
+      this.markAsChanged();
+    }
+  }
+
   getNestedValue(obj, path) {
     return path.split('.').reduce((current, key) => current?.[key], obj);
   }
@@ -400,5 +507,5 @@ class SettingsRenderer {
 
 // Initialize the settings renderer when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new SettingsRenderer();
+  window.settingsRenderer = new SettingsRenderer();
 });

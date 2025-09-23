@@ -12,16 +12,20 @@ let isUpdatingMenu = false; // Flag to prevent recursive menu updates
 
 const START_URL = 'https://www.genesismud.org/play';
 
-// Function to initialize button panel, timer manager, and MUD introspector
+// Function to initialize button panel, timer manager, sound manager, and MUD introspector
 function initializeButtonPanelAndTimers(win, settings) {
-  // Read the ButtonPanel, TimerManager, and MudConnector class files
+  // Read the ButtonPanel, TimerManager, SoundManager, and MudConnector class files
   const buttonPanelCode = require('fs').readFileSync(path.join(__dirname, 'js/ButtonPanel.js'), 'utf8');
   const timerManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/TimerManager.js'), 'utf8');
+  const soundManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/SoundManager.js'), 'utf8');
   const mudConnectorCode = require('fs').readFileSync(path.join(__dirname, 'js/MudConnector.js'), 'utf8');
   
   return win.webContents.executeJavaScript(`
     // Load TimerManager class first
     ${timerManagerCode}
+    
+    // Load SoundManager class
+    ${soundManagerCode}
     
     // Load ButtonPanel class
     ${buttonPanelCode}
@@ -32,6 +36,9 @@ function initializeButtonPanelAndTimers(win, settings) {
     // Initialize MUD connector first (to analyze the page)
     window.mudConnector = new MudConnector();
     window.mudConnector.init();
+    
+    // Initialize sound manager
+    window.soundManager = new SoundManager(${JSON.stringify(settings)});
     
     // Initialize button panel
     window.buttonPanel = new ButtonPanel();
@@ -322,6 +329,9 @@ function createWindow() {
       if (typeof window.buttonPanel !== 'undefined' && window.buttonPanel.isInitialized) {
         window.buttonPanel.updateSettings(${JSON.stringify(newSettings)});
       }
+      if (typeof window.soundManager !== 'undefined') {
+        window.soundManager.updateSettings(${JSON.stringify(newSettings)});
+      }
     `).catch(() => {
       // Ignore errors if page not ready
     });
@@ -398,6 +408,126 @@ app.whenReady().then(() => {
     } catch (error) {
       console.error('Failed to save timer settings:', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // Set up IPC handlers for sound functionality
+  ipcMain.handle('play-sound', async (event, filename, volume = 1.0) => {
+    try {
+      const soundPath = path.join(__dirname, 'assets', 'sounds', filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(soundPath)) {
+        console.warn(`Sound file not found: ${soundPath}`);
+        return false;
+      }
+
+      // Get current sound settings
+      const soundSettings = settingsManager.get('sounds');
+      if (!soundSettings?.enabled) {
+        console.log('Sounds are disabled in settings');
+        return false;
+      }
+
+      // Calculate final volume (individual volume * master volume)
+      const finalVolume = Math.min(1.0, volume * (soundSettings.masterVolume || 1.0));
+
+      // Play the sound using shell command (works on most systems)
+      const { exec } = require('child_process');
+      let command;
+      
+      if (process.platform === 'win32') {
+        // Windows - use built-in media player
+        command = `powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`;
+      } else if (process.platform === 'darwin') {
+        // macOS - use afplay
+        command = `afplay "${soundPath}" -v ${finalVolume}`;
+      } else {
+        // Linux - try multiple players
+        command = `paplay "${soundPath}" || aplay "${soundPath}" || ffplay -nodisp -autoexit "${soundPath}" 2>/dev/null || echo "No audio player available"`;
+      }
+
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Sound playback error: ${error.message}`);
+        }
+      });
+
+      console.log(`🔊 Playing sound: ${filename} at volume ${finalVolume}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to play sound:', error);
+      return false;
+    }
+  });
+
+  ipcMain.handle('get-available-sounds', async () => {
+    try {
+      const soundsDir = path.join(__dirname, 'assets', 'sounds');
+      if (!fs.existsSync(soundsDir)) {
+        return [];
+      }
+
+      const files = fs.readdirSync(soundsDir);
+      const soundFiles = files.filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return ['.wav', '.mp3', '.ogg', '.m4a', '.aac', '.flac'].includes(ext);
+      });
+
+      return soundFiles;
+    } catch (error) {
+      console.error('Failed to get available sounds:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('test-sound', async (event, filename, volume = 1.0) => {
+    // Test sound uses the same logic as play-sound
+    try {
+      const soundPath = path.join(__dirname, 'assets', 'sounds', filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(soundPath)) {
+        console.warn(`Sound file not found: ${soundPath}`);
+        return false;
+      }
+
+      // Get current sound settings
+      const soundSettings = settingsManager.get('sounds');
+      if (!soundSettings?.enabled) {
+        console.log('Sounds are disabled in settings');
+        return false;
+      }
+
+      // Calculate final volume (individual volume * master volume)
+      const finalVolume = Math.min(1.0, volume * (soundSettings.masterVolume || 1.0));
+
+      // Play the sound using shell command (works on most systems)
+      const { exec } = require('child_process');
+      let command;
+      
+      if (process.platform === 'win32') {
+        // Windows - use built-in media player
+        command = `powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`;
+      } else if (process.platform === 'darwin') {
+        // macOS - use afplay
+        command = `afplay "${soundPath}" -v ${finalVolume}`;
+      } else {
+        // Linux - try multiple players
+        command = `paplay "${soundPath}" || aplay "${soundPath}" || ffplay -nodisp -autoexit "${soundPath}" 2>/dev/null || echo "No audio player available"`;
+      }
+
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Sound playback error: ${error.message}`);
+        }
+      });
+
+      console.log(`🔊 Testing sound: ${filename} at volume ${finalVolume}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to test sound:', error);
+      return false;
     }
   });
   

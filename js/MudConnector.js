@@ -121,6 +121,58 @@ class MudConnector {
           return false;
         }
       },
+
+      // Sound API - Play a sound by name (configured in settings)
+      playSound: async (soundName) => {
+        if (typeof window.soundManager !== 'undefined') {
+          console.log(`🔊 Playing sound: ${soundName}`);
+          return await window.soundManager.playSound(soundName);
+        } else {
+          console.warn('🔊 SoundManager not available');
+          return false;
+        }
+      },
+
+      // Sound API - Play a sound file directly
+      playSoundFile: async (filename, volume = 1.0) => {
+        if (typeof window.soundManager !== 'undefined') {
+          console.log(`🔊 Playing sound file: ${filename} (volume: ${volume})`);
+          return await window.soundManager.playSoundFile(filename, volume);
+        } else {
+          console.warn('🔊 SoundManager not available');
+          return false;
+        }
+      },
+
+      // Sound API - Get available sound files
+      getAvailableSounds: async () => {
+        if (typeof window.soundManager !== 'undefined') {
+          return await window.soundManager.getAvailableSounds();
+        } else {
+          console.warn('🔊 SoundManager not available');
+          return [];
+        }
+      },
+
+      // Sound API - Test a configured sound
+      testSound: async (soundName) => {
+        if (typeof window.soundManager !== 'undefined') {
+          return await window.soundManager.testSound(soundName);
+        } else {
+          console.warn('🔊 SoundManager not available');
+          return false;
+        }
+      },
+
+      // Sound API - Get current sound settings
+      getSoundSettings: () => {
+        if (typeof window.soundManager !== 'undefined') {
+          return window.soundManager.getSoundSettings();
+        } else {
+          console.warn('🔊 SoundManager not available');
+          return null;
+        }
+      },
       
       status: () => {
         console.log('📊 WebSocket Status:');
@@ -131,12 +183,22 @@ class MudConnector {
           console.log('  - WebSocket State:', connector.capturedWebSocket.readyState);
           console.log('  - State meanings: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED');
         }
+        console.log('📊 Sound Status:');
+        console.log('  - SoundManager available:', typeof window.soundManager !== 'undefined');
+        if (typeof window.soundManager !== 'undefined') {
+          const soundSettings = window.soundManager.getSoundSettings();
+          console.log('  - Sounds enabled:', soundSettings.enabled);
+          console.log('  - Master volume:', soundSettings.masterVolume);
+          console.log('  - Configured sounds:', soundSettings.soundMappings.map(s => s.name).join(', '));
+        }
         return {
           captured: !!connector.capturedWebSocket,
           originalSendAvailable: !!connector.originalWebSocketSend,
           readyState: connector.capturedWebSocket?.readyState,
           url: connector.capturedWebSocket?.url,
-          mudClientBehavior: 'Adds \\n to each command and displays in output like the actual client'
+          mudClientBehavior: 'Adds \\n to each command and displays in output like the actual client',
+          soundManager: typeof window.soundManager !== 'undefined',
+          soundSettings: typeof window.soundManager !== 'undefined' ? window.soundManager.getSoundSettings() : null
         };
       },
       
@@ -155,6 +217,28 @@ class MudConnector {
         console.log('🔧 Testing connection...');
         console.log('Direct send test:', mudAPI.directSend('l'));
         console.log('MUD client send test:', mudAPI.send('l'));
+      },
+
+      // Sound test method
+      testSounds: async () => {
+        console.log('🔊 Testing sounds...');
+        const settings = mudAPI.getSoundSettings();
+        if (settings && settings.enabled) {
+          console.log('Available configured sounds:');
+          for (const sound of settings.soundMappings) {
+            console.log(`  - ${sound.name}: ${sound.filename} (${sound.description})`);
+          }
+          console.log('Testing first sound...');
+          if (settings.soundMappings.length > 0) {
+            await mudAPI.testSound(settings.soundMappings[0].name);
+          }
+        } else {
+          console.log('Sounds are disabled or not configured');
+        }
+        
+        console.log('Available sound files:');
+        const availableSounds = await mudAPI.getAvailableSounds();
+        console.log(availableSounds);
       }
     };
     
@@ -162,10 +246,17 @@ class MudConnector {
     console.log('Available commands:');
     console.log('  mudAPI.send("message") - Send like MUD client (adds \\n + shows in output)');
     console.log('  mudAPI.directSend("message") - Raw WebSocket send (no output display)');
-    console.log('  mudAPI.status() - Show WebSocket status');
+    console.log('  mudAPI.playSound("soundName") - Play configured sound by name');
+    console.log('  mudAPI.playSoundFile("filename", volume) - Play sound file directly');
+    console.log('  mudAPI.testSound("soundName") - Test a configured sound');
+    console.log('  mudAPI.getSoundSettings() - Get current sound configuration');
+    console.log('  mudAPI.getAvailableSounds() - List available sound files');
+    console.log('  mudAPI.status() - Show WebSocket and Sound status');
     console.log('  mudAPI.getWebSocket() - Get captured WebSocket');
     console.log('  mudAPI.testConnection() - Test both send methods');
+    console.log('  mudAPI.testSounds() - Test sound functionality');
     console.log('🔗 ButtonPanel and TimerManager will automatically use mudAPI.send() when available!');
+    console.log('🔊 Sound triggers can use mudAPI.playSound("soundName") in your MUD triggers!');
   }
 }
 
