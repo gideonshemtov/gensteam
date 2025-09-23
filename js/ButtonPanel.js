@@ -349,8 +349,20 @@ class ButtonPanel {
   }
 
   handleButtonClick(btnConfig) {
+    // Try to use MUD Connector API if available
+    if (typeof window !== 'undefined' && window.mudAPI && window.mudAPI.send) {
+      console.log(`🔘 Button clicked: "${btnConfig.command}" via MUD Connector`);
+      const success = window.mudAPI.send(btnConfig.command);
+      if (success) {
+        return; // Successfully sent via MUD Connector
+      }
+      console.warn('MUD Connector send failed, falling back to input method');
+    }
+    
+    // Fallback to the old input field method
     const input = document.getElementById('input');
     if (input) {
+      console.log(`🔘 Button clicked: "${btnConfig.command}" via input field`);
       input.value = btnConfig.command;
       const enterEvent = new KeyboardEvent('keydown', {
         key: 'Enter',

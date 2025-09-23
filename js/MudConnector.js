@@ -1,14 +1,14 @@
-// MudIntrospector.js - WebSocket interceptor with proper send replication
-class MudIntrospector {
+// MudConnector.js - WebSocket interceptor with proper send replication
+class MudConnector {
   constructor() {
     this.capturedWebSocket = null;
     this.originalWebSocketSend = null;
   }
 
   init() {
-    console.log('🔍 MUD Introspector: Starting WebSocket interception...');
+    console.log('� MUD Connector: Starting WebSocket interception...');
     this.interceptWebSocket();
-    this.exposeDebugAPI();
+    this.exposeAPI();
   }
 
   interceptWebSocket() {
@@ -80,20 +80,20 @@ class MudIntrospector {
     }
   }
 
-  exposeDebugAPI() {
-    const introspector = this;
+  exposeAPI() {
+    const connector = this;
     
-    window.mudDebug = {
+    window.mudAPI = {
       // Direct send method (bypasses MUD client logic)
       directSend: (message) => {
-        if (!introspector.capturedWebSocket || !introspector.originalWebSocketSend) {
+        if (!connector.capturedWebSocket || !connector.originalWebSocketSend) {
           console.log('❌ No WebSocket captured or original send not available');
           return false;
         }
         
         try {
           console.log(`🚀 Direct WebSocket send: "${message}"`);
-          introspector.originalWebSocketSend.call(introspector.capturedWebSocket, message);
+          connector.originalWebSocketSend.call(connector.capturedWebSocket, message);
           console.log('✅ Direct send successful');
           return true;
         } catch (error) {
@@ -104,14 +104,14 @@ class MudIntrospector {
 
       // MUD client compatible send (adds \n like the actual client)
       send: (message) => {
-        if (!introspector.capturedWebSocket || !introspector.originalWebSocketSend) {
+        if (!connector.capturedWebSocket || !connector.originalWebSocketSend) {
           console.log('❌ No WebSocket captured yet');
           return false;
         }
         
         try {
           console.log(`🧪 MUD client send: "${message}"`);
-          const success = introspector.mudClientSend(message);
+          const success = connector.mudClientSend(message);
           if (success) {
             console.log('✅ MUD client send successful (added to output)');
           }
@@ -124,26 +124,26 @@ class MudIntrospector {
       
       status: () => {
         console.log('📊 WebSocket Status:');
-        console.log('  - WebSocket captured:', !!introspector.capturedWebSocket);
-        console.log('  - Original send available:', !!introspector.originalWebSocketSend);
-        if (introspector.capturedWebSocket) {
-          console.log('  - WebSocket URL:', introspector.capturedWebSocket.url);
-          console.log('  - WebSocket State:', introspector.capturedWebSocket.readyState);
+        console.log('  - WebSocket captured:', !!connector.capturedWebSocket);
+        console.log('  - Original send available:', !!connector.originalWebSocketSend);
+        if (connector.capturedWebSocket) {
+          console.log('  - WebSocket URL:', connector.capturedWebSocket.url);
+          console.log('  - WebSocket State:', connector.capturedWebSocket.readyState);
           console.log('  - State meanings: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED');
         }
         return {
-          captured: !!introspector.capturedWebSocket,
-          originalSendAvailable: !!introspector.originalWebSocketSend,
-          readyState: introspector.capturedWebSocket?.readyState,
-          url: introspector.capturedWebSocket?.url,
+          captured: !!connector.capturedWebSocket,
+          originalSendAvailable: !!connector.originalWebSocketSend,
+          readyState: connector.capturedWebSocket?.readyState,
+          url: connector.capturedWebSocket?.url,
           mudClientBehavior: 'Adds \\n to each command and displays in output like the actual client'
         };
       },
       
       getWebSocket: () => {
-        if (introspector.capturedWebSocket) {
-          console.log('✅ Captured WebSocket:', introspector.capturedWebSocket);
-          return introspector.capturedWebSocket;
+        if (connector.capturedWebSocket) {
+          console.log('✅ Captured WebSocket:', connector.capturedWebSocket);
+          return connector.capturedWebSocket;
         } else {
           console.log('❌ No WebSocket captured yet.');
           return null;
@@ -153,22 +153,23 @@ class MudIntrospector {
       // Test methods
       testConnection: () => {
         console.log('🔧 Testing connection...');
-        console.log('Direct send test:', mudDebug.directSend('l'));
-        console.log('MUD client send test:', mudDebug.send('l'));
+        console.log('Direct send test:', mudAPI.directSend('l'));
+        console.log('MUD client send test:', mudAPI.send('l'));
       }
     };
     
-    console.log('🛠️ Debug API exposed as window.mudDebug');
+    console.log('🛠️ MUD API exposed as window.mudAPI');
     console.log('Available commands:');
-    console.log('  mudDebug.send("message") - Send like MUD client (adds \\n + shows in output)');
-    console.log('  mudDebug.directSend("message") - Raw WebSocket send (no output display)');
-    console.log('  mudDebug.status() - Show WebSocket status');
-    console.log('  mudDebug.getWebSocket() - Get captured WebSocket');
-    console.log('  mudDebug.testConnection() - Test both send methods');
+    console.log('  mudAPI.send("message") - Send like MUD client (adds \\n + shows in output)');
+    console.log('  mudAPI.directSend("message") - Raw WebSocket send (no output display)');
+    console.log('  mudAPI.status() - Show WebSocket status');
+    console.log('  mudAPI.getWebSocket() - Get captured WebSocket');
+    console.log('  mudAPI.testConnection() - Test both send methods');
+    console.log('🔗 ButtonPanel and TimerManager will automatically use mudAPI.send() when available!');
   }
 }
 
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = MudIntrospector;
+  module.exports = MudConnector;
 }

@@ -106,8 +106,20 @@ class TimerManager {
   }
 
   executeCommand(command) {
+    // Try to use MUD Connector API if available
+    if (typeof window !== 'undefined' && window.mudAPI && window.mudAPI.send) {
+      console.log(`⏰ Timer executing: "${command}" via MUD Connector`);
+      const success = window.mudAPI.send(command);
+      if (success) {
+        return; // Successfully sent via MUD Connector
+      }
+      console.warn('MUD Connector send failed, falling back to input method');
+    }
+    
+    // Fallback to the old input field method
     const input = document.getElementById('input');
     if (input) {
+      console.log(`⏰ Timer executing: "${command}" via input field`);
       // Store current input value to restore later
       const currentValue = input.value;
       

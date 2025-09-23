@@ -14,10 +14,10 @@ const START_URL = 'https://www.genesismud.org/play';
 
 // Function to initialize button panel, timer manager, and MUD introspector
 function initializeButtonPanelAndTimers(win, settings) {
-  // Read the ButtonPanel, TimerManager, and MudIntrospector class files
+  // Read the ButtonPanel, TimerManager, and MudConnector class files
   const buttonPanelCode = require('fs').readFileSync(path.join(__dirname, 'js/ButtonPanel.js'), 'utf8');
   const timerManagerCode = require('fs').readFileSync(path.join(__dirname, 'js/TimerManager.js'), 'utf8');
-  const mudIntrospectorCode = require('fs').readFileSync(path.join(__dirname, 'js/MudIntrospector.js'), 'utf8');
+  const mudConnectorCode = require('fs').readFileSync(path.join(__dirname, 'js/MudConnector.js'), 'utf8');
   
   return win.webContents.executeJavaScript(`
     // Load TimerManager class first
@@ -26,13 +26,12 @@ function initializeButtonPanelAndTimers(win, settings) {
     // Load ButtonPanel class
     ${buttonPanelCode}
     
-    // Load MudIntrospector class
-    ${mudIntrospectorCode}
+    // Load MudConnector class
+    ${mudConnectorCode}
     
-    // Initialize MUD introspector first (to analyze the page)
-    window.mudIntrospector = new MudIntrospector();
-    window.mudIntrospector.init();
-    window.mudIntrospector.exposeDebugAPI();
+    // Initialize MUD connector first (to analyze the page)
+    window.mudConnector = new MudConnector();
+    window.mudConnector.init();
     
     // Initialize button panel
     window.buttonPanel = new ButtonPanel();
