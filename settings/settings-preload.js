@@ -17,5 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Sound testing API for settings window
   testSound: (filename, volume = 1.0) => ipcRenderer.invoke('play-sound', filename, volume),
-  getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds')
+  getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
+  
+  // Window control
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  onCloseRequested: (callback) => ipcRenderer.on('window:close-requested', callback),
+  forceClose: () => ipcRenderer.invoke('window:force-close')
 });

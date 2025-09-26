@@ -61,6 +61,22 @@ class SettingsWindow {
     ipcMain.handle('settings:getPath', () => {
       return this.settingsManager.getSettingsPath();
     });
+
+    // Close window
+    ipcMain.handle('window:close', (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (window) {
+        window.close();
+      }
+    });
+
+    // Force close window (bypass close handler)
+    ipcMain.handle('window:force-close', (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (window) {
+        window.destroy();
+      }
+    });
   }
 
   create() {
@@ -86,6 +102,13 @@ class SettingsWindow {
 
     // Load the settings UI
     this.window.loadFile(path.join(__dirname, 'settings.html'));
+
+    // Handle window close attempt (before closing)
+    this.window.on('close', (e) => {
+      // Let the renderer handle unsaved changes
+      e.preventDefault();
+      this.window.webContents.send('window:close-requested');
+    });
 
     // Handle window closed
     this.window.on('closed', () => {

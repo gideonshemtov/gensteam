@@ -30,6 +30,11 @@ class SettingsRenderer {
       this.saveSettings();
     });
 
+    // Cancel button
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      this.cancelSettings();
+    });
+
     // Reset all button
     document.getElementById('resetAllBtn').addEventListener('click', () => {
       this.showResetModal();
@@ -78,6 +83,13 @@ class SettingsRenderer {
         this.handleSettingChange(e.target);
       }
     });
+
+    // Handle close request from main process
+    if (window.electronAPI && window.electronAPI.onCloseRequested) {
+      window.electronAPI.onCloseRequested(() => {
+        this.handleWindowCloseRequest();
+      });
+    }
 
     // Prevent accidental window close with unsaved changes
     window.addEventListener('beforeunload', (e) => {
@@ -219,6 +231,42 @@ class SettingsRenderer {
       }
     } catch (error) {
       this.showError('Failed to save settings: ' + error.message);
+    }
+  }
+
+  handleWindowCloseRequest() {
+    if (this.hasUnsavedChanges) {
+      const confirmCancel = confirm('You have unsaved changes. Are you sure you want to close without saving?');
+      if (!confirmCancel) {
+        return; // Don't close the window
+      }
+    }
+    
+    // Force close the window
+    if (window.electronAPI && window.electronAPI.forceClose) {
+      window.electronAPI.forceClose();
+    }
+  }
+
+  cancelSettings() {
+    if (this.hasUnsavedChanges) {
+      const confirmCancel = confirm('You have unsaved changes. Are you sure you want to cancel and lose these changes?');
+      if (!confirmCancel) {
+        return;
+      }
+      
+      // Revert all changes back to original settings
+      this.currentSettings = JSON.parse(JSON.stringify(this.originalSettings));
+      this.hasUnsavedChanges = false;
+      this.populateUI(); // Update the UI to show the reverted values
+    }
+    
+    // Close the settings window
+    if (window.electronAPI && window.electronAPI.forceClose) {
+      window.electronAPI.forceClose();
+    } else {
+      // Fallback: try to close the window
+      window.close();
     }
   }
 
