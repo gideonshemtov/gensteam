@@ -154,16 +154,6 @@ class MudConnector {
         }
       },
 
-      // Sound API - Test a configured sound
-      testSound: async (soundName) => {
-        if (typeof window.soundManager !== 'undefined') {
-          return await window.soundManager.testSound(soundName);
-        } else {
-          console.warn('🔊 SoundManager not available');
-          return false;
-        }
-      },
-
       // Sound API - Get current sound settings
       getSoundSettings: () => {
         if (typeof window.soundManager !== 'undefined') {
@@ -218,28 +208,6 @@ class MudConnector {
         console.log('Direct send test:', mudAPI.directSend('l'));
         console.log('MUD client send test:', mudAPI.send('l'));
       },
-
-      // Sound test method
-      testSounds: async () => {
-        console.log('🔊 Testing sounds...');
-        const settings = mudAPI.getSoundSettings();
-        if (settings && settings.enabled) {
-          console.log('Available configured sounds:');
-          for (const sound of settings.soundMappings) {
-            console.log(`  - ${sound.name}: ${sound.filename} (${sound.description})`);
-          }
-          console.log('Testing first sound...');
-          if (settings.soundMappings.length > 0) {
-            await mudAPI.testSound(settings.soundMappings[0].name);
-          }
-        } else {
-          console.log('Sounds are disabled or not configured');
-        }
-        
-        console.log('Available sound files:');
-        const availableSounds = await mudAPI.getAvailableSounds();
-        console.log(availableSounds);
-      }
     };
     
     console.log('🛠️ MUD API exposed as window.mudAPI');
@@ -248,13 +216,11 @@ class MudConnector {
     console.log('  mudAPI.directSend("message") - Raw WebSocket send (no output display)');
     console.log('  mudAPI.playSound("soundName") - Play configured sound by name');
     console.log('  mudAPI.playSoundFile("filename", volume) - Play sound file directly');
-    console.log('  mudAPI.testSound("soundName") - Test a configured sound');
     console.log('  mudAPI.getSoundSettings() - Get current sound configuration');
     console.log('  mudAPI.getAvailableSounds() - List available sound files');
     console.log('  mudAPI.status() - Show WebSocket and Sound status');
     console.log('  mudAPI.getWebSocket() - Get captured WebSocket');
     console.log('  mudAPI.testConnection() - Test both send methods');
-    console.log('  mudAPI.testSounds() - Test sound functionality');
     console.log('🔗 ButtonPanel and TimerManager will automatically use mudAPI.send() when available!');
     console.log('🔊 Sound triggers can use mudAPI.playSound("soundName") in your MUD triggers!');
   }

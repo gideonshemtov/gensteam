@@ -62,11 +62,6 @@ class SettingsRenderer {
       this.importSettings();
     });
 
-    // Sound-related event listeners
-    document.getElementById('testSoundBtn').addEventListener('click', () => {
-      this.testAllSounds();
-    });
-
     document.getElementById('addSoundBtn').addEventListener('click', () => {
       this.addSoundMapping();
     });
@@ -412,21 +407,21 @@ class SettingsRenderer {
           <div class="button-title">${sound.name} (${sound.filename})</div>
           <div class="button-command">Volume: ${sound.volume} - ${sound.description || 'No description'}</div>
         </div>
-        <button class="btn" onclick="window.settingsRenderer.testSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
+        <button class="btn" onclick="window.settingsRenderer.playSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
         <button class="btn danger" onclick="window.settingsRenderer.removeSoundMapping(${index})" style="margin-left: 5px; padding: 4px 8px; font-size: 11px;">Remove</button>
       `;
       soundList.appendChild(soundItem);
     });
   }
 
-  async testSound(soundName) {
+  async playSound(soundName) {
     try {
-      if (window.electronAPI && window.electronAPI.testSound) {
+      if (window.electronAPI && window.electronAPI.playSound) {
         // Find the sound mapping
         const sounds = this.currentSettings.sounds?.soundMappings || [];
         const sound = sounds.find(s => s.name === soundName);
         if (sound) {
-          const success = await window.electronAPI.testSound(sound.filename, sound.volume);
+          const success = await window.electronAPI.playSound(sound.filename, sound.volume);
           if (success) {
             this.showSuccess(`Played sound: ${soundName}`);
           } else {
@@ -440,22 +435,6 @@ class SettingsRenderer {
       }
     } catch (error) {
       this.showError('Error testing sound: ' + error.message);
-    }
-  }
-
-  async testAllSounds() {
-    const sounds = this.currentSettings.sounds?.soundMappings || [];
-    if (sounds.length === 0) {
-      this.showError('No sounds configured to test');
-      return;
-    }
-
-    this.showSuccess(`Testing ${sounds.length} configured sounds...`);
-    
-    for (let i = 0; i < sounds.length; i++) {
-      const sound = sounds[i];
-      await new Promise(resolve => setTimeout(resolve, 500)); // Wait between sounds
-      await this.testSound(sound.name);
     }
   }
 

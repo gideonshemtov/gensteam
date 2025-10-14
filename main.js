@@ -480,56 +480,6 @@ app.whenReady().then(() => {
       return [];
     }
   });
-
-  ipcMain.handle('test-sound', async (event, filename, volume = 1.0) => {
-    // Test sound uses the same logic as play-sound
-    try {
-      const soundPath = path.join(__dirname, 'assets', 'sounds', filename);
-      
-      // Check if file exists
-      if (!fs.existsSync(soundPath)) {
-        console.warn(`Sound file not found: ${soundPath}`);
-        return false;
-      }
-
-      // Get current sound settings
-      const soundSettings = settingsManager.get('sounds');
-      if (!soundSettings?.enabled) {
-        console.log('Sounds are disabled in settings');
-        return false;
-      }
-
-      // Calculate final volume (individual volume * master volume)
-      const finalVolume = Math.min(1.0, volume * (soundSettings.masterVolume || 1.0));
-
-      // Play the sound using shell command (works on most systems)
-      const { exec } = require('child_process');
-      let command;
-      
-      if (process.platform === 'win32') {
-        // Windows - use built-in media player
-        command = `powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`;
-      } else if (process.platform === 'darwin') {
-        // macOS - use afplay
-        command = `afplay "${soundPath}" -v ${finalVolume}`;
-      } else {
-        // Linux - try multiple players
-        command = `paplay "${soundPath}" || aplay "${soundPath}" || ffplay -nodisp -autoexit "${soundPath}" 2>/dev/null || echo "No audio player available"`;
-      }
-
-      exec(command, (error, stdout, stderr) => {
-        if (error) {
-          console.error(`Sound playback error: ${error.message}`);
-        }
-      });
-
-      console.log(`🔊 Testing sound: ${filename} at volume ${finalVolume}`);
-      return true;
-    } catch (error) {
-      console.error('Failed to test sound:', error);
-      return false;
-    }
-  });
   
   // Deny any permission prompts by default (camera/mic/etc.)
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));

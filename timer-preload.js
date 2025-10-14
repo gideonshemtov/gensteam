@@ -8,5 +8,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Sound-related APIs
   playSound: (filename, volume = 1.0) => ipcRenderer.invoke('play-sound', filename, volume),
   getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
-  testSound: (filename, volume = 1.0) => ipcRenderer.invoke('test-sound', filename, volume)
 });

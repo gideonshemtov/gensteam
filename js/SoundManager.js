@@ -66,11 +66,6 @@ class SoundManager {
     }
   }
 
-  // Test a sound
-  async testSound(soundName) {
-    console.log(`🔊 Testing sound: ${soundName}`);
-    return await this.playSound(soundName);
-  }
 
   // Get current sound settings
   getSoundSettings() {
