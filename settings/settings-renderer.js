@@ -62,10 +62,6 @@ class SettingsRenderer {
       this.importSettings();
     });
 
-    document.getElementById('addSoundBtn').addEventListener('click', () => {
-      this.addSoundMapping();
-    });
-
     // Setting inputs change detection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('setting-input')) {
@@ -408,7 +404,6 @@ class SettingsRenderer {
           <div class="button-command">Volume: ${sound.volume} - ${sound.description || 'No description'}</div>
         </div>
         <button class="btn" onclick="window.settingsRenderer.playSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
-        <button class="btn danger" onclick="window.settingsRenderer.removeSoundMapping(${index})" style="margin-left: 5px; padding: 4px 8px; font-size: 11px;">Remove</button>
       `;
       soundList.appendChild(soundItem);
     });
@@ -435,33 +430,6 @@ class SettingsRenderer {
       }
     } catch (error) {
       this.showError('Error testing sound: ' + error.message);
-    }
-  }
-
-  addSoundMapping() {
-    const sounds = this.currentSettings.sounds?.soundMappings || [];
-    const newSound = {
-      name: `sound${sounds.length + 1}`,
-      filename: 'newSound.wav',
-      volume: 1.0,
-      description: 'New sound mapping'
-    };
-    
-    sounds.push(newSound);
-    this.setNestedValue(this.currentSettings, 'sounds.soundMappings', sounds);
-    this.populateSoundList();
-    this.updateJsonEditor();
-    this.markAsChanged();
-  }
-
-  removeSoundMapping(index) {
-    const sounds = this.currentSettings.sounds?.soundMappings || [];
-    if (index >= 0 && index < sounds.length) {
-      sounds.splice(index, 1);
-      this.setNestedValue(this.currentSettings, 'sounds.soundMappings', sounds);
-      this.populateSoundList();
-      this.updateJsonEditor();
-      this.markAsChanged();
     }
   }
 
