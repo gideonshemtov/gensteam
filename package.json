@@ -16,6 +16,14 @@
     "appId": "org.genesis.wrapper",
     "productName": "GenesisClient",
     "icon": "assets/icon",
+    "files": [
+      "**/*",
+      "!dist",
+      "!.git"
+    ],
+    "asarUnpack": [
+      "assets/sounds/**/*"
+    ],
     "mac": {
       "category": "public.app-category.games",
       "icon": "assets/icon.png"

@@ -414,7 +414,14 @@ app.whenReady().then(() => {
   // Set up IPC handlers for sound functionality
   ipcMain.handle('play-sound', async (event, filename, volume = 1.0) => {
     try {
-      const soundPath = path.join(__dirname, 'assets', 'sounds', filename);
+      // Use __dirname.replace('app.asar', 'app.asar.unpacked') to access unpacked files
+      // This works whether the app is packaged or not
+      let soundPath = path.join(__dirname, 'assets', 'sounds', filename);
+      
+      // In production, check if we need to use the unpacked path
+      if (soundPath.includes('app.asar')) {
+        soundPath = soundPath.replace('app.asar', 'app.asar.unpacked');
+      }
       
       // Check if file exists
       if (!fs.existsSync(soundPath)) {
