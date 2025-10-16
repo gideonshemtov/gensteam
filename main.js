@@ -439,8 +439,6 @@ app.whenReady().then(() => {
       // Use master volume directly (no individual volumes anymore)
       const finalVolume = soundSettings.masterVolume || 1.0;
       
-      console.log(`🔊 Playing sound at volume: ${finalVolume} (${Math.round(finalVolume * 100)}%)`);
-      
       // Convert volume to percentage for command-line players (0-100)
       const volumePercent = Math.round(finalVolume * 100);
 
@@ -470,7 +468,6 @@ app.whenReady().then(() => {
         }
       });
 
-      console.log(`🔊 Playing sound: ${filename} at volume ${finalVolume}`);
       return true;
     } catch (error) {
       console.error('Failed to play sound:', error);
