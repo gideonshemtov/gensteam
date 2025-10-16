@@ -73,6 +73,21 @@ class SettingsRenderer {
       if (e.target.classList.contains('setting-input')) {
         this.handleSettingChange(e.target);
       }
+      // Update volume percentage display and auto-save for immediate effect
+      if (e.target.id === 'volumeSlider') {
+        this.updateVolumeDisplay(e.target.value);
+      }
+    });
+    
+    // Auto-save volume changes after user stops dragging (debounced)
+    let volumeSaveTimeout;
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'volumeSlider') {
+        clearTimeout(volumeSaveTimeout);
+        volumeSaveTimeout = setTimeout(() => {
+          this.saveSettings();
+        }, 500);
+      }
     });
 
     // Handle close request from main process
@@ -115,6 +130,12 @@ class SettingsRenderer {
       }
     });
 
+    // Update volume display
+    const volumeSlider = document.getElementById('volumeSlider');
+    if (volumeSlider) {
+      this.updateVolumeDisplay(volumeSlider.value);
+    }
+
     // Populate button list
     this.populateButtonList();
 
@@ -123,6 +144,14 @@ class SettingsRenderer {
 
     // Populate JSON editor
     this.updateJsonEditor();
+  }
+
+  updateVolumeDisplay(value) {
+    const volumeValue = document.getElementById('volumeValue');
+    if (volumeValue) {
+      const percentage = Math.round(value * 100);
+      volumeValue.textContent = `${percentage}%`;
+    }
   }
 
   populateButtonList() {
@@ -185,6 +214,8 @@ class SettingsRenderer {
       value = input.checked;
     } else if (input.type === 'number') {
       value = parseInt(input.value, 10);
+    } else if (input.type === 'range') {
+      value = parseFloat(input.value);
     } else {
       value = input.value;
     }
@@ -401,7 +432,7 @@ class SettingsRenderer {
         </div>
         <div class="button-info">
           <div class="button-title">${sound.name} (${sound.filename})</div>
-          <div class="button-command">Volume: ${sound.volume} - ${sound.description || 'No description'}</div>
+          <div class="button-command">${sound.description || 'No description'}</div>
         </div>
         <button class="btn" onclick="window.settingsRenderer.playSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
       `;
@@ -416,7 +447,8 @@ class SettingsRenderer {
         const sounds = this.currentSettings.sounds?.soundMappings || [];
         const sound = sounds.find(s => s.name === soundName);
         if (sound) {
-          const success = await window.electronAPI.playSound(sound.filename, sound.volume);
+          // Master volume will be applied in main process
+          const success = await window.electronAPI.playSound(sound.filename);
           if (success) {
             this.showSuccess(`Played sound: ${soundName}`);
           } else {

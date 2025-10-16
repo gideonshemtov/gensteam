@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   
   // Sound testing API for settings window
-  playSound: (filename, volume = 1.0) => ipcRenderer.invoke('play-sound', filename, volume),
+  playSound: (filename) => ipcRenderer.invoke('play-sound', filename),
   getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
   
   // Window control

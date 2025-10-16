@@ -28,17 +28,18 @@ class SoundManager {
       return false;
     }
 
-    return await this.playSoundFile(soundConfig.filename, soundConfig.volume);
+    // Always use 1.0, master volume is applied in main process
+    return await this.playSoundFile(soundConfig.filename, 1.0);
   }
 
   // Play a sound file directly
-  async playSoundFile(filename, volume = 1.0) {
+  async playSoundFile(filename) {
     try {
       // Request the main process to play the sound
       if (window.electronAPI && window.electronAPI.playSound) {
-        const success = await window.electronAPI.playSound(filename, volume);
+        const success = await window.electronAPI.playSound(filename);
         if (success) {
-          console.log(`🔊 Played sound: ${filename} (volume: ${volume})`);
+          console.log(`🔊 Played sound: ${filename}`);
         } else {
           console.warn(`🔊 Failed to play sound: ${filename}`);
         }

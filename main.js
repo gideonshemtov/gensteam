@@ -412,7 +412,7 @@ app.whenReady().then(() => {
   });
 
   // Set up IPC handlers for sound functionality
-  ipcMain.handle('play-sound', async (event, filename, volume = 1.0) => {
+  ipcMain.handle('play-sound', async (event, filename) => {
     try {
       // Use __dirname.replace('app.asar', 'app.asar.unpacked') to access unpacked files
       // This works whether the app is packaged or not
@@ -436,22 +436,32 @@ app.whenReady().then(() => {
         return false;
       }
 
-      // Calculate final volume (individual volume * master volume)
-      const finalVolume = Math.min(1.0, volume * (soundSettings.masterVolume || 1.0));
+      // Use master volume directly (no individual volumes anymore)
+      const finalVolume = soundSettings.masterVolume || 1.0;
+      
+      console.log(`🔊 Playing sound at volume: ${finalVolume} (${Math.round(finalVolume * 100)}%)`);
+      
+      // Convert volume to percentage for command-line players (0-100)
+      const volumePercent = Math.round(finalVolume * 100);
 
       // Play the sound using shell command (works on most systems)
       const { exec } = require('child_process');
       let command;
       
       if (process.platform === 'win32') {
-        // Windows - use built-in media player
-        command = `powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`;
+        // Windows - use PowerShell with volume control
+        // Convert 0-1 range to 0-100 for SoundPlayer volume
+        const winVolume = Math.round(finalVolume * 100);
+        command = `powershell -c "$player = New-Object System.Media.SoundPlayer '${soundPath}'; $player.PlaySync()"`;
+        // Note: SoundPlayer doesn't support volume, so we'll use a different approach
+        // Using ffplay which works on Windows if available, otherwise fall back to basic playback
+        command = `powershell -c "Add-Type -AssemblyName presentationCore; $mediaPlayer = New-Object system.windows.media.mediaplayer; $mediaPlayer.Volume = ${finalVolume}; $mediaPlayer.open('${soundPath}'); $mediaPlayer.Play(); Start-Sleep -Milliseconds 100; while($mediaPlayer.NaturalDuration.HasTimeSpan -eq $false) { Start-Sleep -Milliseconds 100 }; $duration = $mediaPlayer.NaturalDuration.TimeSpan.TotalMilliseconds; Start-Sleep -Milliseconds $duration"`;
       } else if (process.platform === 'darwin') {
-        // macOS - use afplay
+        // macOS - use afplay with volume
         command = `afplay "${soundPath}" -v ${finalVolume}`;
       } else {
-        // Linux - try multiple players
-        command = `paplay "${soundPath}" || aplay "${soundPath}" || ffplay -nodisp -autoexit "${soundPath}" 2>/dev/null || echo "No audio player available"`;
+        // Linux - use paplay with volume or ffplay
+        command = `paplay --volume=${Math.round(finalVolume * 65536)} "${soundPath}" 2>/dev/null || ffplay -nodisp -autoexit -volume ${volumePercent} "${soundPath}" 2>/dev/null || aplay "${soundPath}"`;
       }
 
       exec(command, (error, stdout, stderr) => {

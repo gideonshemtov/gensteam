@@ -182,31 +182,26 @@ class SettingsManager {
                 {
                   name: 'alert',
                   filename: 'alert.wav',
-                  volume: 1.0,
                   description: 'General alert sound'
                 },
                 {
                   name: 'combat',
                   filename: 'combat.wav',
-                  volume: 0.8,
                   description: 'Combat-related notifications'
                 },
                 {
                   name: 'whisper',
                   filename: 'whisper.wav',
-                  volume: 0.9,
                   description: 'Private message notifications'
                 },
                 {
                   name: 'death',
                   filename: 'death.wav',
-                  volume: 1.0,
                   description: 'Character death sound'
                 },
                 {
                   name: 'level',
                   filename: 'level.wav',
-                  volume: 1.0,
                   description: 'Level up notification'
                 }
               ],
@@ -221,19 +216,12 @@ class SettingsManager {
                     type: 'string',
                     description: 'Sound file name (relative to assets/sounds/)'
                   },
-                  volume: {
-                    type: 'number',
-                    minimum: 0.0,
-                    maximum: 1.0,
-                    default: 1.0,
-                    description: 'Volume level for this sound (0.0 to 1.0)'
-                  },
                   description: {
                     type: 'string',
                     description: 'Human-readable description of what triggers this sound'
                   }
                 },
-                required: ['name', 'filename', 'volume'],
+                required: ['name', 'filename'],
                 additionalProperties: false
               },
               description: 'Sound name to file mappings'
@@ -269,7 +257,11 @@ class SettingsManager {
       if (fs.existsSync(this.settingsPath)) {
         const raw = fs.readFileSync(this.settingsPath, 'utf-8');
         const parsed = JSON.parse(raw);
-        const merged = this.mergeWithDefaults(this.getDefaults(), parsed);
+        
+        // Apply migrations
+        const migrated = this.migrateSettings(parsed);
+        
+        const merged = this.mergeWithDefaults(this.getDefaults(), migrated);
         
         // Validate the merged settings
         if (this.validate(merged)) {
@@ -283,6 +275,17 @@ class SettingsManager {
       console.error('Failed to load settings:', error);
     }
     return this.getDefaults();
+  }
+
+  migrateSettings(settings) {
+    // Migration: Remove individual volume from sound mappings (v1.0.14+)
+    if (settings.sounds?.soundMappings) {
+      settings.sounds.soundMappings = settings.sounds.soundMappings.map(sound => {
+        const { volume, ...rest } = sound;
+        return rest;
+      });
+    }
+    return settings;
   }
 
   mergeWithDefaults(defaults, userSettings) {
