@@ -9,6 +9,8 @@ const SettingsWindow = require('./settings/SettingsWindow');
 let settingsManager;
 let settingsWindow;
 let isUpdatingMenu = false; // Flag to prevent recursive menu updates
+let findBar = null; // Module-level find bar reference
+let win = null; // Module-level window reference
 
 const START_URL = 'https://www.genesismud.org/play';
 
@@ -127,9 +129,13 @@ function createMenu(win) {
           label: 'Find...',
           accelerator: 'CmdOrCtrl+F',
           click: () => {
-            // Open find in page - Electron doesn't have a built-in UI for this
-            // We need to send a message to the renderer to show a custom find UI
-            win.webContents.send('show-find');
+            if (!win || !findBar) return;
+            if (findBar.isVisible()) {
+              findBar.hide();
+            } else {
+              findBar.show();
+              findBar.webContents.send('focus-input');
+            }
           }
         },
         { type: 'separator' },
@@ -297,7 +303,7 @@ function createMenu(win) {
 function createWindow() {
   const settings = settingsManager.get();
   
-  const win = new BrowserWindow({
+  win = new BrowserWindow({
     width: settings.window.width,
     height: settings.window.height,
     backgroundColor: '#000000',
@@ -310,6 +316,55 @@ function createWindow() {
       preload: path.join(__dirname, 'timer-preload.js')
     },
   });
+
+  // Create find bar window (hidden by default)
+  const createFindBar = () => {
+    if (findBar) return findBar;
+    
+    findBar = new BrowserWindow({
+      parent: win,
+      width: 400,
+      height: 50,
+      x: win.getBounds().width - 420,
+      y: 10,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      show: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+    
+    findBar.loadFile(path.join(__dirname, 'find-bar.html'));
+    findBar.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    
+    // Reposition find bar when main window moves or resizes
+    const updateFindBarPosition = () => {
+      if (findBar && !findBar.isDestroyed()) {
+        const bounds = win.getBounds();
+        findBar.setBounds({
+          x: bounds.x + bounds.width - 420,
+          y: bounds.y + 10,
+          width: 400,
+          height: 50,
+        });
+      }
+    };
+    
+    win.on('move', updateFindBarPosition);
+    win.on('resize', updateFindBarPosition);
+    
+    return findBar;
+  };
+
+  // Create the find bar
+  createFindBar();
 
   // Set up the menu
   const menu = createMenu(win);
@@ -381,17 +436,20 @@ function createWindow() {
     }
   });
 
-  // Close settings window when main window is closed
+  // Close settings window and find bar when main window is closed
   win.on('closed', () => {
     if (settingsWindow && settingsWindow.isOpen()) {
       settingsWindow.close();
     }
+    if (findBar && !findBar.isDestroyed()) {
+      findBar.close();
+    }
   });
 
-  // Set up find in page handlers
+  // Set up find in page IPC handlers
   ipcMain.on('find-in-page', (event, text, options) => {
     if (text) {
-      const requestId = win.webContents.findInPage(text, options || {});
+      win.webContents.findInPage(text, options || {});
     } else {
       win.webContents.stopFindInPage('clearSelection');
     }
@@ -401,8 +459,16 @@ function createWindow() {
     win.webContents.stopFindInPage(action || 'clearSelection');
   });
 
+  ipcMain.on('hide-find-bar', () => {
+    if (findBar && !findBar.isDestroyed()) {
+      findBar.hide();
+    }
+  });
+
   win.webContents.on('found-in-page', (event, result) => {
-    win.webContents.send('found-in-page', result);
+    if (findBar && !findBar.isDestroyed()) {
+      findBar.webContents.send('found-in-page', result);
+    }
   });
 
   return win;

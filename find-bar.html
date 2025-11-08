@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 8px 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            -webkit-app-region: drag;
+            overflow: hidden;
+        }
+        .find-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+        }
+        #find-input {
+            background: #3c3c3c;
+            border: 1px solid #5a5a5a;
+            color: #cccccc;
+            padding: 4px 8px;
+            border-radius: 3px;
+            outline: none;
+            width: 200px;
+            font-size: 13px;
+        }
+        #find-input:focus {
+            border-color: #007acc;
+        }
+        #find-count {
+            color: #888;
+            font-size: 11px;
+            min-width: 60px;
+        }
+        button {
+            background: #0e639c;
+            border: 1px solid #3e3e42;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:active {
+            background: #0d5a8f;
+        }
+        #find-close {
+            background: transparent;
+            border: none;
+            color: #cccccc;
+            padding: 4px 8px;
+            font-size: 16px;
+        }
+        #find-close:hover {
+            background: #3e3e42;
+        }
+    </style>
+</head>
+<body>
+    <div class="find-container">
+        <input type="text" id="find-input" placeholder="Find in page..." autofocus>
+        <span id="find-count"></span>
+        <button id="find-prev" title="Previous match (Shift+Enter)">↑</button>
+        <button id="find-next" title="Next match (Enter)">↓</button>
+        <button id="find-close" title="Close (Esc)">×</button>
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        const input = document.getElementById('find-input');
+        const count = document.getElementById('find-count');
+        const prev = document.getElementById('find-prev');
+        const next = document.getElementById('find-next');
+        const close = document.getElementById('find-close');
+        
+        let debounceTimer;
+        
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const text = input.value;
+            if (text) {
+                // Clear previous highlights first
+                ipcRenderer.send('stop-find-in-page', 'clearSelection');
+                debounceTimer = setTimeout(() => {
+                    ipcRenderer.send('find-in-page', text, { findNext: true });
+                }, 100);
+            } else {
+                count.textContent = '';
+                ipcRenderer.send('stop-find-in-page', 'clearSelection');
+            }
+        });
+        
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (input.value) {
+                    ipcRenderer.send('find-in-page', input.value, { 
+                        forward: !e.shiftKey, 
+                        findNext: true 
+                    });
+                }
+            } else if (e.key === 'Escape') {
+                ipcRenderer.send('hide-find-bar');
+            }
+        });
+        
+        next.addEventListener('click', () => {
+            if (input.value) {
+                ipcRenderer.send('find-in-page', input.value, { 
+                    forward: true, 
+                    findNext: true 
+                });
+            }
+        });
+        
+        prev.addEventListener('click', () => {
+            if (input.value) {
+                ipcRenderer.send('find-in-page', input.value, { 
+                    forward: false, 
+                    findNext: true 
+                });
+            }
+        });
+        
+        close.addEventListener('click', () => {
+            ipcRenderer.send('hide-find-bar');
+        });
+        
+        // Listen for result updates
+        ipcRenderer.on('found-in-page', (event, result) => {
+            if (result.matches > 0) {
+                count.textContent = `${result.activeMatchOrdinal}/${result.matches}`;
+            } else if (result.matches === 0 && input.value) {
+                count.textContent = 'No matches';
+            } else {
+                count.textContent = '';
+            }
+        });
+        
+        // Focus input when shown
+        ipcRenderer.on('focus-input', () => {
+            input.focus();
+            input.select();
+        });
+    </script>
+</body>
+</html>
