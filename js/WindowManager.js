@@ -74,6 +74,9 @@ class WindowManager {
       },
     });
 
+    // Maximize the window on start
+    this.win.maximize();
+
     // Set up the menu (find bar will be set up later)
     const menu = this.menuBuilder.createMenu(this.win, null);
     Menu.setApplicationMenu(menu);
