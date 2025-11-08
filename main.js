@@ -124,6 +124,16 @@ function createMenu(win) {
         },
         { type: 'separator' },
         {
+          label: 'Find...',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => {
+            // Open find in page - Electron doesn't have a built-in UI for this
+            // We need to send a message to the renderer to show a custom find UI
+            win.webContents.send('show-find');
+          }
+        },
+        { type: 'separator' },
+        {
           label: 'Preferences...',
           accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
           click: () => {
@@ -376,6 +386,23 @@ function createWindow() {
     if (settingsWindow && settingsWindow.isOpen()) {
       settingsWindow.close();
     }
+  });
+
+  // Set up find in page handlers
+  ipcMain.on('find-in-page', (event, text, options) => {
+    if (text) {
+      const requestId = win.webContents.findInPage(text, options || {});
+    } else {
+      win.webContents.stopFindInPage('clearSelection');
+    }
+  });
+
+  ipcMain.on('stop-find-in-page', (event, action) => {
+    win.webContents.stopFindInPage(action || 'clearSelection');
+  });
+
+  win.webContents.on('found-in-page', (event, result) => {
+    win.webContents.send('found-in-page', result);
   });
 
   return win;
