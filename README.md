@@ -1,4 +1,4 @@
-# Genesis MUD Desktop Client
+# Genesis MUD — Official Desktop Client
 
 The official desktop client for [Genesis MUD](https://www.genesismud.org), built with Electron. GenesisClient provides a dedicated desktop experience for playing Genesis MUD and is intended for distribution on Steam.
 
@@ -73,7 +73,7 @@ pnpm run pack
 │   ├── TimerManager.js       # Command timer functionality
 │   ├── MudConnector.js       # WebSocket bridge and mudAPI
 │   ├── SoundManager.js       # In-page sound playback
-│   ├── SoundIPC.js           # Main-process sound playback
+│   ├── SoundProtocol.js      # Custom protocol for bundled sound files
 │   ├── FindBarManager.js     # Find-in-page overlay
 │   ├── MenuBuilder.js        # Application menu
 │   └── WindowManager.js      # Main window lifecycle

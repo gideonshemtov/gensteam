@@ -1,8 +1,15 @@
 // settings/settings-preload.js
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose protected methods that allow the renderer process to use
-// the ipcRenderer without exposing the entire object
+const SOUND_FILENAME_PATTERN = /^[a-zA-Z0-9_-]+\.(wav|mp3|ogg|m4a|aac|flac)$/i;
+
+function getSoundUrl(filename) {
+  if (typeof filename !== 'string' || !SOUND_FILENAME_PATTERN.test(filename)) {
+    return null;
+  }
+  return `genesis-sound://local/${encodeURIComponent(filename)}`;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
@@ -12,15 +19,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     resetSection: (section) => ipcRenderer.invoke('settings:resetSection', section),
     exportJson: () => ipcRenderer.invoke('settings:exportJson'),
     importJson: (jsonString) => ipcRenderer.invoke('settings:importJson', jsonString),
-    getPath: () => ipcRenderer.invoke('settings:getPath')
+    getPath: () => ipcRenderer.invoke('settings:getPath'),
   },
-  
-  // Sound testing API for settings window
-  playSound: (filename) => ipcRenderer.invoke('play-sound', filename),
+
+  getSoundUrl,
   getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
-  
-  // Window control
+
   closeWindow: () => ipcRenderer.invoke('window:close'),
   onCloseRequested: (callback) => ipcRenderer.on('window:close-requested', callback),
-  forceClose: () => ipcRenderer.invoke('window:force-close')
+  forceClose: () => ipcRenderer.invoke('window:force-close'),
 });

@@ -3,66 +3,12 @@ const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 class SettingsWindow {
-  constructor(settingsManager) {
-    this.settingsManager = settingsManager;
+  constructor() {
     this.window = null;
-    this.setupIpcHandlers();
+    this.setupWindowHandlers();
   }
 
-  setupIpcHandlers() {
-    // Get current settings
-    ipcMain.handle('settings:get', () => {
-      return this.settingsManager.settings;
-    });
-
-    // Get settings schema
-    ipcMain.handle('settings:getSchema', () => {
-      return this.settingsManager.getSchema();
-    });
-
-    // Save settings
-    ipcMain.handle('settings:save', async (event, newSettings) => {
-      try {
-        this.settingsManager.save(newSettings);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    });
-
-    // Reset settings
-    ipcMain.handle('settings:reset', () => {
-      this.settingsManager.reset();
-      return this.settingsManager.settings;
-    });
-
-    // Reset section
-    ipcMain.handle('settings:resetSection', (event, section) => {
-      this.settingsManager.resetSection(section);
-      return this.settingsManager.settings;
-    });
-
-    // Get settings as JSON
-    ipcMain.handle('settings:exportJson', () => {
-      return this.settingsManager.exportSettings();
-    });
-
-    // Import settings from JSON
-    ipcMain.handle('settings:importJson', async (event, jsonString) => {
-      try {
-        this.settingsManager.importSettings(jsonString);
-        return { success: true, settings: this.settingsManager.settings };
-      } catch (error) {
-        return { success: false, error: error.message };
-      }
-    });
-
-    // Get settings file path
-    ipcMain.handle('settings:getPath', () => {
-      return this.settingsManager.getSettingsPath();
-    });
-
-    // Close window
+  setupWindowHandlers() {
     ipcMain.handle('window:close', (event) => {
       const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {
@@ -70,7 +16,6 @@ class SettingsWindow {
       }
     });
 
-    // Force close window (bypass close handler)
     ipcMain.handle('window:force-close', (event) => {
       const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {

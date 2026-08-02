@@ -1,8 +1,7 @@
-// SoundManager.js - Manages sound configuration and playback
+// SoundManager.js - Manages sound configuration and playback via Chromium Audio API
 class SoundManager {
   constructor(settings = {}) {
     this.settings = settings;
-    this.audioCache = new Map();
     this.init();
   }
 
@@ -13,6 +12,18 @@ class SoundManager {
   updateSettings(newSettings) {
     this.settings = newSettings;
     console.log('🔊 SoundManager settings updated');
+  }
+
+  getMasterVolume() {
+    const volume = this.settings.sounds?.masterVolume ?? 1.0;
+    return Math.min(1, Math.max(0, volume));
+  }
+
+  getSoundUrl(filename) {
+    if (window.electronAPI?.getSoundUrl) {
+      return window.electronAPI.getSoundUrl(filename);
+    }
+    return null;
   }
 
   // Play a sound by its configured name
@@ -28,26 +39,29 @@ class SoundManager {
       return false;
     }
 
-    // Always use 1.0, master volume is applied in main process
-    return await this.playSoundFile(soundConfig.filename, 1.0);
+    return await this.playSoundFile(soundConfig.filename);
   }
 
   // Play a sound file directly
-  async playSoundFile(filename) {
+  async playSoundFile(filename, volume = 1.0) {
+    if (!this.settings.sounds?.enabled) {
+      return false;
+    }
+
+    const url = this.getSoundUrl(filename);
+    if (!url) {
+      console.warn(`🔊 Invalid or unavailable sound file: ${filename}`);
+      return false;
+    }
+
+    const finalVolume = Math.min(1, Math.max(0, this.getMasterVolume() * volume));
+
     try {
-      // Request the main process to play the sound
-      if (window.electronAPI && window.electronAPI.playSound) {
-        const success = await window.electronAPI.playSound(filename);
-        if (success) {
-          console.log(`🔊 Played sound: ${filename}`);
-        } else {
-          console.warn(`🔊 Failed to play sound: ${filename}`);
-        }
-        return success;
-      } else {
-        console.warn('🔊 electronAPI.playSound not available');
-        return false;
-      }
+      const audio = new Audio(url);
+      audio.volume = finalVolume;
+      await audio.play();
+      console.log(`🔊 Played sound: ${filename}`);
+      return true;
     } catch (error) {
       console.error(`🔊 Error playing sound ${filename}:`, error);
       return false;
@@ -57,7 +71,7 @@ class SoundManager {
   // Get list of available sound files
   async getAvailableSounds() {
     try {
-      if (window.electronAPI && window.electronAPI.getAvailableSounds) {
+      if (window.electronAPI?.getAvailableSounds) {
         return await window.electronAPI.getAvailableSounds();
       }
       return [];
@@ -67,18 +81,15 @@ class SoundManager {
     }
   }
 
-
-  // Get current sound settings
   getSoundSettings() {
     return this.settings.sounds || {
       enabled: false,
       masterVolume: 1.0,
-      soundMappings: []
+      soundMappings: [],
     };
   }
 }
 
-// Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SoundManager;
 }

@@ -5,6 +5,14 @@ All notable changes to GenesisClient are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.0.16] - 2026-08-02
+
+### Fixed
+
+- Sound playback now uses Chromium Audio API instead of shell commands (PowerShell, afplay, etc.)
+
 ## [1.0.15] - 2025-11-08
 
 ### Added

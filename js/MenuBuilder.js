@@ -179,9 +179,9 @@ class MenuBuilder {
               
               dialog.showMessageBox(win, {
                 type: 'info',
-                title: 'GenesisClient',
-                message: `GenesisClient v${packageJson.version}`,
-                detail: `${packageJson.description}\n\nA desktop wrapper for Genesis MUD built with Electron.\n\nAuthor: ${packageJson.author}\nLicense: ${packageJson.license}`,
+                title: 'Genesis MUD — Official Desktop Client',
+                message: `Genesis MUD — Official Desktop Client v${packageJson.version}`,
+                detail: `${packageJson.description}\n\nBuilt with Electron.\n\nLicense: ${packageJson.license}`,
                 buttons: ['OK'],
                 defaultId: 0,
                 icon: path.join(__dirname, '..', 'assets', 'icon.png')

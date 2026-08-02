@@ -108,6 +108,9 @@ class SettingsRenderer {
 
   async loadSettings() {
     try {
+      if (!window.electronAPI?.settings?.get) {
+        throw new Error('Settings API is not available. The preload script may have failed to load.');
+      }
       this.currentSettings = await window.electronAPI.settings.get();
       this.originalSettings = JSON.parse(JSON.stringify(this.currentSettings));
     } catch (error) {
@@ -442,24 +445,29 @@ class SettingsRenderer {
 
   async playSound(soundName) {
     try {
-      if (window.electronAPI && window.electronAPI.playSound) {
-        // Find the sound mapping
-        const sounds = this.currentSettings.sounds?.soundMappings || [];
-        const sound = sounds.find(s => s.name === soundName);
-        if (sound) {
-          // Master volume will be applied in main process
-          const success = await window.electronAPI.playSound(sound.filename);
-          if (success) {
-            this.showSuccess(`Played sound: ${soundName}`);
-          } else {
-            this.showError(`Failed to play sound: ${soundName}. Check if the file exists in assets/sounds/`);
-          }
-        } else {
-          this.showError(`Sound mapping not found: ${soundName}`);
-        }
-      } else {
-        this.showError('Sound testing not available');
+      const sounds = this.currentSettings.sounds?.soundMappings || [];
+      const sound = sounds.find(s => s.name === soundName);
+      if (!sound) {
+        this.showError(`Sound mapping not found: ${soundName}`);
+        return;
       }
+
+      if (!window.electronAPI?.getSoundUrl) {
+        this.showError('Sound testing not available');
+        return;
+      }
+
+      const url = window.electronAPI.getSoundUrl(sound.filename);
+      if (!url) {
+        this.showError(`Failed to play sound: ${soundName}. Check if the file exists in assets/sounds/`);
+        return;
+      }
+
+      const masterVolume = this.currentSettings.sounds?.masterVolume ?? 1.0;
+      const audio = new Audio(url);
+      audio.volume = Math.min(1, Math.max(0, masterVolume));
+      await audio.play();
+      this.showSuccess(`Played sound: ${soundName}`);
     } catch (error) {
       this.showError('Error testing sound: ' + error.message);
     }
