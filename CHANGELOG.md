@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Refactored main process: extracted `WindowManager`, `MenuBuilder`, `FindBarManager`, and `SoundIPC` modules
+- Refactored main process into separate modules
 
 ### Fixed
 
@@ -31,9 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Sound system with configurable mappings and `mudAPI.playSound()` / `mudAPI.playSoundFile()`
+- Sound system with configurable mappings for MUD triggers
 - Default sound files (alert, combat, whisper, death, level)
-- WebSocket command bridge (`MudConnector`) — buttons and timers send commands through the game client
+- WebSocket command bridge — buttons and timers send commands through the game client
 - Help → About dialog
 
 ### Fixed
@@ -84,7 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Distribution builds (`electron-builder` packaging and dependency inclusion)
+- Distribution build fixes (packaging and dependency inclusion)
 
 ## [1.0.7] - 2025-09-09
 
