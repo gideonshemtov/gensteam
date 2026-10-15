@@ -3,6 +3,9 @@ const { BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// Hardcoded game client URL
+const GAME_URL = 'https://www.genesismud.org/play';
+
 // Function to initialize button panel, timer manager, sound manager, and MUD connector
 function initializeButtonPanelAndTimers(win, settings) {
   // Read the class files
@@ -82,7 +85,7 @@ class WindowManager {
     Menu.setApplicationMenu(menu);
 
     // Load Genesis web client
-    this.win.loadURL(settings.game.startUrl);
+    this.win.loadURL(GAME_URL);
 
     // Set up settings change listener
     this.setupSettingsListener();
@@ -154,7 +157,7 @@ class WindowManager {
 
     // Prevent unexpected navigations away from Genesis
     this.win.webContents.on('will-navigate', (event, url) => {
-      const allowedOrigin = new URL(settings.game.startUrl).origin;
+      const allowedOrigin = new URL(GAME_URL).origin;
       if (!url.startsWith(allowedOrigin)) {
         event.preventDefault();
         shell.openExternal(url);

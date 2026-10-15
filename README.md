@@ -174,7 +174,6 @@ The client exposes `window.mudAPI` for integration with the Genesis web client. 
 The application can be customized through the preferences window (**View → Preferences**):
 
 - **UI Settings**: Toggle button panel, adjust panel width, hide menu bar
-- **Game Settings**: Default start URL
 - **Button Configuration**: Customize command buttons
 - **Sound Settings**: Enable sounds, master volume, and sound mappings
 - **Window Settings**: Default window size

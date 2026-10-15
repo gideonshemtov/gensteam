@@ -48,17 +48,6 @@ class SettingsManager {
           },
           additionalProperties: false
         },
-        game: {
-          type: 'object',
-          properties: {
-            startUrl: {
-              type: 'string',
-              default: 'https://www.genesismud.org/play',
-              description: 'Default URL to load when the application starts'
-            }
-          },
-          additionalProperties: false
-        },
         buttons: {
           type: 'object',
           properties: {
@@ -278,6 +267,10 @@ class SettingsManager {
   }
 
   migrateSettings(settings) {
+    // Migration: Remove the configurable game URL (v1.0.x+); the game URL is now hardcoded
+    if (settings.game) {
+      delete settings.game;
+    }
     // Migration: Remove individual volume from sound mappings (v1.0.14+)
     if (settings.sounds?.soundMappings) {
       settings.sounds.soundMappings = settings.sounds.soundMappings.map(sound => {
