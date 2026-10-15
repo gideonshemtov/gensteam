@@ -73,20 +73,9 @@ class SettingsRenderer {
       if (e.target.classList.contains('setting-input')) {
         this.handleSettingChange(e.target);
       }
-      // Update volume percentage display and auto-save for immediate effect
+      // Keep the volume percentage label in sync while dragging
       if (e.target.id === 'volumeSlider') {
         this.updateVolumeDisplay(e.target.value);
-      }
-    });
-    
-    // Auto-save volume changes after user stops dragging (debounced)
-    let volumeSaveTimeout;
-    document.addEventListener('change', (e) => {
-      if (e.target.id === 'volumeSlider') {
-        clearTimeout(volumeSaveTimeout);
-        volumeSaveTimeout = setTimeout(() => {
-          this.saveSettings();
-        }, 500);
       }
     });
 

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Timer changes no longer trigger a settings update loop that froze the button panel and timers
+- Volume changes now follow the same save flow as other settings (removed the silent auto-save)
 
 ### Security
 
