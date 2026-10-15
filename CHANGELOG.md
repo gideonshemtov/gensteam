@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Navigation is validated by comparing parsed origins exactly, blocking look-alike domains
 - External links are restricted to `http`, `https`, and `mailto` before reaching OS protocol handlers
 - Timer settings IPC now verifies the sender frame and only persists validated timer data
+- Preferences UI renders settings values as text (no HTML injection) and ships a Content-Security-Policy
 
 ## [1.0.16] - 2026-08-02
 

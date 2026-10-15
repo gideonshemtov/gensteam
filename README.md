@@ -202,6 +202,7 @@ The application can be customized through the preferences window (**View → Pre
 - **Navigation Protection**: Prevents navigation away from the (hardcoded) Genesis MUD origin
 - **External Link Filtering**: Only `http`, `https`, and `mailto` links are handed to the operating system
 - **IPC Validation**: Timer updates are validated and only accepted from the game client frame
+- **No HTML Injection in Settings**: Preferences renders settings values as text and enforces a Content-Security-Policy
 
 ## Build Output
 

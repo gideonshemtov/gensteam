@@ -160,22 +160,40 @@ class SettingsRenderer {
   populateButtonList() {
     const buttonList = document.getElementById('buttonList');
     const buttons = this.currentSettings.buttons?.customButtons || [];
-    
-    buttonList.innerHTML = '';
-    buttons.forEach((button, index) => {
+
+    buttonList.textContent = '';
+    buttons.forEach((button) => {
+      const color = this.getSafeColor(button.color);
+
       const buttonItem = document.createElement('div');
       buttonItem.className = 'button-item';
-      buttonItem.innerHTML = `
-        <div class="button-preview" style="background: ${button.color}; border: 1px solid ${button.color};">
-          ${button.icon}
-        </div>
-        <div class="button-info">
-          <div class="button-title">${button.title}</div>
-          <div class="button-command">${button.command}</div>
-        </div>
-      `;
+
+      const preview = document.createElement('div');
+      preview.className = 'button-preview';
+      preview.style.background = color;
+      preview.style.border = `1px solid ${color}`;
+      preview.textContent = button.icon ?? '';
+
+      const info = document.createElement('div');
+      info.className = 'button-info';
+
+      const title = document.createElement('div');
+      title.className = 'button-title';
+      title.textContent = button.title ?? '';
+
+      const command = document.createElement('div');
+      command.className = 'button-command';
+      command.textContent = button.command ?? '';
+
+      info.append(title, command);
+      buttonItem.append(preview, info);
       buttonList.appendChild(buttonItem);
     });
+  }
+
+  // Only accept well-formed hex colors; anything else falls back to a neutral grey.
+  getSafeColor(color) {
+    return typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(color) ? color : '#888888';
   }
 
   updateJsonEditor() {
@@ -424,21 +442,41 @@ class SettingsRenderer {
   populateSoundList() {
     const soundList = document.getElementById('soundList');
     const sounds = this.currentSettings.sounds?.soundMappings || [];
-    
-    soundList.innerHTML = '';
-    sounds.forEach((sound, index) => {
+
+    soundList.textContent = '';
+    sounds.forEach((sound) => {
       const soundItem = document.createElement('div');
       soundItem.className = 'button-item'; // Reuse button item styling
-      soundItem.innerHTML = `
-        <div class="button-preview" style="background: #4a90e2; border: 1px solid #4a90e2; font-size: 12px;">
-          🔊
-        </div>
-        <div class="button-info">
-          <div class="button-title">${sound.name} (${sound.filename})</div>
-          <div class="button-command">${sound.description || 'No description'}</div>
-        </div>
-        <button class="btn" onclick="window.settingsRenderer.playSound('${sound.name}')" style="margin-left: 10px; padding: 4px 8px; font-size: 11px;">Test</button>
-      `;
+
+      const preview = document.createElement('div');
+      preview.className = 'button-preview';
+      preview.style.background = '#4a90e2';
+      preview.style.border = '1px solid #4a90e2';
+      preview.style.fontSize = '12px';
+      preview.textContent = '🔊';
+
+      const info = document.createElement('div');
+      info.className = 'button-info';
+
+      const title = document.createElement('div');
+      title.className = 'button-title';
+      title.textContent = `${sound.name ?? ''} (${sound.filename ?? ''})`;
+
+      const description = document.createElement('div');
+      description.className = 'button-command';
+      description.textContent = sound.description || 'No description';
+
+      info.append(title, description);
+
+      const testButton = document.createElement('button');
+      testButton.className = 'btn';
+      testButton.textContent = 'Test';
+      testButton.style.marginLeft = '10px';
+      testButton.style.padding = '4px 8px';
+      testButton.style.fontSize = '11px';
+      testButton.addEventListener('click', () => this.playSound(sound.name));
+
+      soundItem.append(preview, info, testButton);
       soundList.appendChild(soundItem);
     });
   }
