@@ -293,7 +293,7 @@ class SettingsManager {
     return result;
   }
 
-  save(newSettings = this.settings) {
+  save(newSettings = this.settings, { notify = true } = {}) {
     try {
       // Validate before saving
       if (!this.validate(newSettings)) {
@@ -303,10 +303,14 @@ class SettingsManager {
       fs.writeFileSync(this.settingsPath, JSON.stringify(newSettings, null, 2));
       const oldSettings = this.settings;
       this.settings = newSettings;
-      
-      // Notify subscribers of changes
-      this.notifySubscribers(oldSettings, newSettings);
-      
+
+      // Notify subscribers of changes. Callers that already applied the change
+      // in the renderer (e.g. timer saves) pass { notify: false } to avoid
+      // re-entrant update loops.
+      if (notify) {
+        this.notifySubscribers(oldSettings, newSettings);
+      }
+
       return true;
     } catch (error) {
       console.error('Failed to save settings:', error);

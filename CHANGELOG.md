@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - "Start URL" setting (`game.startUrl`) and the Game Settings section in the preferences window
 
+### Fixed
+
+- Timer changes no longer trigger a settings update loop that froze the button panel and timers
+
 ### Security
 
 - Navigation is validated by comparing parsed origins exactly, blocking look-alike domains

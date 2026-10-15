@@ -2,10 +2,31 @@ require('./helpers/electron-stub');
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 const TimerIPC = require('../js/TimerIPC');
-const { ipcHandlers } = require('./helpers/electron-stub');
+const SettingsManager = require('../settings/SettingsManager');
+const { ipcHandlers, electronStub } = require('./helpers/electron-stub');
 const { GAME_ORIGIN } = require('../js/WindowManager');
+
+const tempDirs = [];
+const originalLog = console.log;
+test.before(() => { console.log = () => {}; });
+test.after(() => {
+  console.log = originalLog;
+  for (const dir of tempDirs) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+function makeRealSettingsManager() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gensteam-timer-ipc-'));
+  tempDirs.push(dir);
+  electronStub.app.getPath = () => dir;
+  return new SettingsManager();
+}
 
 function setup() {
   const saved = [];
@@ -111,4 +132,39 @@ test('preserves optional createdAt on timers', () => {
   });
 
   assert.equal(settingsManager.settings.timers.activeTimers[0].createdAt, 123);
+});
+
+test('saving timers does not notify subscribers (prevents the save/update feedback loop)', () => {
+  const settingsManager = makeRealSettingsManager();
+
+  let notifications = 0;
+  settingsManager.subscribe(() => { notifications += 1; });
+
+  const ipc = new TimerIPC(settingsManager);
+  ipc.setupHandlers();
+  const handler = ipcHandlers.get('save-timer-settings');
+
+  const result = handler(trustedEvent(), {
+    activeTimers: [{ id: 1, name: 't', interval: 5, command: 'look', isActive: true }],
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(notifications, 0, 'timer saves must not notify subscribers');
+  assert.equal(settingsManager.get('timers.activeTimers').length, 1);
+
+  const onDisk = JSON.parse(fs.readFileSync(settingsManager.getSettingsPath(), 'utf8'));
+  assert.equal(onDisk.timers.activeTimers.length, 1);
+});
+
+test('regular settings saves still notify subscribers', () => {
+  const settingsManager = makeRealSettingsManager();
+
+  let notifications = 0;
+  settingsManager.subscribe(() => { notifications += 1; });
+
+  const next = JSON.parse(JSON.stringify(settingsManager.get()));
+  next.ui.showButtonPanel = false;
+  settingsManager.save(next);
+
+  assert.equal(notifications, 1);
 });

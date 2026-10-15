@@ -36,7 +36,9 @@ class TimerIPC {
 
       const newSettings = JSON.parse(JSON.stringify(this.settingsManager.get()));
       newSettings.timers = { activeTimers };
-      this.settingsManager.save(newSettings);
+      // The renderer already holds this state; notifying would make the button
+      // panel reload and restart timers, causing a save/notify feedback loop.
+      this.settingsManager.save(newSettings, { notify: false });
 
       return { success: true };
     } catch (error) {
