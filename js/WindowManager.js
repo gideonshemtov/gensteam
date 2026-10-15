@@ -5,6 +5,25 @@ const fs = require('fs');
 
 // Hardcoded game client URL
 const GAME_URL = 'https://www.genesismud.org/play';
+const GAME_ORIGIN = new URL(GAME_URL).origin;
+
+// Only these schemes may be handed to the operating system
+const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
+// Open a URL in the user's default browser, but only for safe schemes.
+// Untrusted page content must never be able to reach arbitrary OS protocol handlers.
+function openExternalSafely(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return; // Ignore malformed URLs
+  }
+  if (!SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {
+    return;
+  }
+  shell.openExternal(url);
+}
 
 // Function to initialize button panel, timer manager, sound manager, and MUD connector
 function initializeButtonPanelAndTimers(win, settings) {
@@ -151,16 +170,25 @@ class WindowManager {
   setupNavigationHandlers(settings) {
     // Open all new windows/links in the external browser
     this.win.webContents.setWindowOpenHandler(({ url }) => {
-      shell.openExternal(url);
+      openExternalSafely(url);
       return { action: 'deny' };
     });
 
     // Prevent unexpected navigations away from Genesis
     this.win.webContents.on('will-navigate', (event, url) => {
-      const allowedOrigin = new URL(GAME_URL).origin;
-      if (!url.startsWith(allowedOrigin)) {
+      let parsed;
+      try {
+        parsed = new URL(url);
+      } catch {
         event.preventDefault();
-        shell.openExternal(url);
+        return;
+      }
+
+      // Compare parsed origins exactly so look-alike domains
+      // (e.g. https://www.genesismud.org.attacker.example) are rejected.
+      if (parsed.origin !== GAME_ORIGIN) {
+        event.preventDefault();
+        openExternalSafely(url);
       }
     });
   }
@@ -188,4 +216,4 @@ class WindowManager {
   }
 }
 
-module.exports = { WindowManager, initializeButtonPanelAndTimers };
+module.exports = { WindowManager, initializeButtonPanelAndTimers, GAME_URL, GAME_ORIGIN, openExternalSafely };

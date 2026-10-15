@@ -611,7 +611,7 @@ class ButtonPanel {
   onTimerSettingsChanged(settings) {
     // This will be used to sync timer settings back to main process
     if (window.electronAPI && window.electronAPI.saveTimerSettings) {
-      window.electronAPI.saveTimerSettings(settings).then(result => {
+      window.electronAPI.saveTimerSettings(settings?.timers || { activeTimers: [] }).then(result => {
         if (!result.success) {
           console.error('Failed to save timer settings:', result.error);
         }

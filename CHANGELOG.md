@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-10-15
+
+### Added
+
+- Unit test suite using Node's built-in test runner (`pnpm test`)
+
+### Changed
+
+- Game URL is now hardcoded and no longer configurable through settings
+
+### Removed
+
+- "Start URL" setting (`game.startUrl`) and the Game Settings section in the preferences window
+
+### Security
+
+- Navigation is validated by comparing parsed origins exactly, blocking look-alike domains
+- External links are restricted to `http`, `https`, and `mailto` before reaching OS protocol handlers
+- Timer settings IPC now verifies the sender frame and only persists validated timer data
+
 ## [1.0.16] - 2026-08-02
 
 ### Fixed

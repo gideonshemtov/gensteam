@@ -11,7 +11,7 @@ function getSoundUrl(filename) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  saveTimerSettings: (settings) => ipcRenderer.invoke('save-timer-settings', settings),
+  saveTimerSettings: (timers) => ipcRenderer.invoke('save-timer-settings', timers),
   getSoundUrl,
   getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
 });

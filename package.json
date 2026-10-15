@@ -1,12 +1,13 @@
 {
   "name": "genesis-electron",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Genesis MUD — Official Desktop Client",
   "main": "main.js",
   "author": "Genesis Mud",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "test": "node --test \"test/**/*.test.js\"",
     "pack": "electron-builder --dir",
     "dist:win": "electron-builder -w",
     "dist:mac": "electron-builder -m",

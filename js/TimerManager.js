@@ -155,7 +155,7 @@ class TimerManager {
   saveSettings() {
     // This will be called by the main process through window.buttonPanel
     if (window.electronAPI && window.electronAPI.saveTimerSettings) {
-      window.electronAPI.saveTimerSettings(this.settings).then(result => {
+      window.electronAPI.saveTimerSettings(this.settings?.timers || { activeTimers: [] }).then(result => {
         if (!result.success) {
           console.error('Failed to save timer settings:', result.error);
         }

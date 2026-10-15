@@ -61,6 +61,19 @@ pnpm run dist:linux
 pnpm run pack
 ```
 
+## Testing
+
+The project uses Node's built-in test runner, so no extra dependencies are required:
+
+```bash
+pnpm test
+```
+
+Tests live in `test/` and cover settings persistence and migration, navigation/origin
+protection, external-link scheme filtering, timer IPC validation, and timer behaviour.
+Main-process modules are exercised against a lightweight `electron` stub
+(`test/helpers/electron-stub.js`), so no display or Electron runtime is needed.
+
 ## Project Structure
 
 ```
@@ -84,6 +97,7 @@ pnpm run pack
 │   ├── settings-preload.js   # Settings preload script
 │   └── settings.html         # Settings interface
 ├── assets/                   # Application icons and sound files
+├── test/                     # Unit tests (Node built-in test runner)
 ├── package.json              # Project configuration and build settings
 └── README.md                 # This file
 ```
@@ -185,7 +199,9 @@ The application can be customized through the preferences window (**View → Pre
 - **No Node Integration**: Prevents the web content from accessing Node.js APIs
 - **Context Isolation**: Ensures the main world and isolated world contexts are separate
 - **Permission Denial**: All permission requests are automatically denied
-- **Navigation Protection**: Prevents navigation away from the configured Genesis MUD origin
+- **Navigation Protection**: Prevents navigation away from the (hardcoded) Genesis MUD origin
+- **External Link Filtering**: Only `http`, `https`, and `mailto` links are handed to the operating system
+- **IPC Validation**: Timer updates are validated and only accepted from the game client frame
 
 ## Build Output
 
