@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Game URL is now hardcoded and no longer configurable through settings
+- Preferences now opens as a modal dialog that blocks the game window until it is closed
 
 ### Removed
 

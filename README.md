@@ -185,7 +185,7 @@ The client exposes `window.mudAPI` for integration with the Genesis web client. 
 
 ## Configuration
 
-The application can be customized through the preferences window (**View → Preferences**):
+The application can be customized through the preferences window (**View → Preferences**), which opens as a modal dialog over the game window:
 
 - **UI Settings**: Toggle button panel, adjust panel width, hide menu bar
 - **Button Configuration**: Customize command buttons

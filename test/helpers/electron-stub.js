@@ -11,6 +11,7 @@ const loadedUrls = [];
 class BrowserWindow {
   constructor(options) {
     this.options = options;
+    this.destroyed = false;
     this.webContents = {
       on: () => {},
       once: () => {},
@@ -22,6 +23,15 @@ class BrowserWindow {
   loadURL(url) {
     loadedUrls.push(url);
   }
+  loadFile() {}
+  focus() {}
+  isDestroyed() {
+    return this.destroyed;
+  }
+  close() {}
+  destroy() {
+    this.destroyed = true;
+  }
   on() {}
   setAutoHideMenuBar() {}
   setMenuBarVisibility() {}
@@ -30,11 +40,16 @@ class BrowserWindow {
 const electronStub = {
   app: {
     getPath: () => os.tmpdir(),
+    getName: () => 'GenesisClient',
     whenReady: () => Promise.resolve(),
     on: () => {},
   },
   BrowserWindow,
-  Menu: { setApplicationMenu: () => {} },
+  Menu: {
+    setApplicationMenu: () => {},
+    buildFromTemplate: (template) => template,
+  },
+  dialog: { showMessageBox: () => {} },
   shell: {
     openExternal: (url) => {
       openExternalCalls.push(url);

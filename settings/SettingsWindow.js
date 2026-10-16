@@ -24,7 +24,7 @@ class SettingsWindow {
     });
   }
 
-  create() {
+  create(parentWindow) {
     if (this.window) {
       this.window.focus();
       return this.window;
@@ -37,6 +37,10 @@ class SettingsWindow {
       minHeight: 600,
       title: 'Genesis Client - Settings',
       autoHideMenuBar: true,
+      // Behave like a modal dialog: block interaction with the game window
+      // until preferences are closed.
+      parent: parentWindow || undefined,
+      modal: Boolean(parentWindow),
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

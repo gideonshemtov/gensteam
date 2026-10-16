@@ -88,7 +88,7 @@ class MenuBuilder {
             accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
             click: () => {
               if (!this.settingsWindow.isOpen()) {
-                this.settingsWindow.create();
+                this.settingsWindow.create(win);
               } else {
                 this.settingsWindow.window.focus();
               }
@@ -207,7 +207,7 @@ class MenuBuilder {
             accelerator: 'Cmd+,',
             click: () => {
               if (!this.settingsWindow.isOpen()) {
-                this.settingsWindow.create();
+                this.settingsWindow.create(win);
               } else {
                 this.settingsWindow.window.focus();
               }
