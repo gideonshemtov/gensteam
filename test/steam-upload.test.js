@@ -27,10 +27,12 @@ test('renderTemplate replaces every occurrence of each token', () => {
   assert.equal(rendered, 'a 1 b 1 c 2');
 });
 
-test('detectExecutables finds the game binary but not chrome-sandbox', (t) => {
+test('detectExecutables finds the game binary but not Chromium helpers', (t) => {
   const dir = tempDir(t);
   fs.writeFileSync(path.join(dir, 'GenesisClient'), 'x', { mode: 0o755 });
   fs.writeFileSync(path.join(dir, 'chrome-sandbox'), 'x', { mode: 0o4755 });
+  fs.writeFileSync(path.join(dir, 'chrome_crashpad_handler'), 'x', { mode: 0o755 });
+  fs.writeFileSync(path.join(dir, 'libEGL.so'), 'x', { mode: 0o755 });
   fs.writeFileSync(path.join(dir, 'resources'), 'x', { mode: 0o644 });
 
   assert.deepEqual(detectExecutables(dir), ['GenesisClient']);

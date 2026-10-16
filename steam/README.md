@@ -36,6 +36,28 @@ pnpm run dist:linux:dir
 pnpm run steam:upload
 ```
 
+### Uploading with Docker
+
+If you don't have steamcmd installed locally, run it in Docker instead:
+
+```bash
+pnpm run dist:linux:dir
+pnpm run steam:upload:docker
+```
+
+This prepares the content/VDFs on the host, then runs
+[`cm2network/steamcmd`](https://hub.docker.com/r/cm2network/steamcmd) with the
+repo mounted at the **same absolute path** (so the absolute paths in the VDF
+resolve), prompts for your Steam password / Steam Guard code, and caches the
+login in the `genesis-steam-home` named volume. Override the image with
+`STEAMCMD_IMAGE=...`.
+
+To only generate the depot content and VDFs (no upload):
+
+```bash
+pnpm run steam:prepare
+```
+
 `steam:upload` will:
 
 - read `.env`,

@@ -13,7 +13,9 @@
     "dist:mac": "electron-builder -m",
     "dist:linux": "electron-builder -l",
     "dist:linux:dir": "electron-builder --linux --dir",
-    "steam:upload": "node steam/upload.js"
+    "steam:prepare": "node steam/upload.js --prepare",
+    "steam:upload": "node steam/upload.js",
+    "steam:upload:docker": "bash steam/docker-upload.sh"
   },
   "build": {
     "appId": "org.genesis.client",

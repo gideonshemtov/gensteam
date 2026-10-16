@@ -45,11 +45,14 @@ function renderTemplate(templateText, replacements) {
   return text;
 }
 
+// Files at the content root that are executables but not the game binary.
+const NON_GAME_EXECUTABLES = new Set(['chrome-sandbox', 'chrome_crashpad_handler']);
+
 // Executable files at the root of the build (the game binary), excluding the
-// Chromium sandbox helper which is not a launch target.
+// Chromium helpers/libraries which are not launch targets.
 function detectExecutables(dir) {
   return fs.readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name !== 'chrome-sandbox')
+    .filter((entry) => entry.isFile() && !NON_GAME_EXECUTABLES.has(entry.name) && !entry.name.includes('.'))
     .map((entry) => entry.name)
     .filter((name) => {
       try {
@@ -120,6 +123,13 @@ function main() {
 
   console.log(`\nGenerated ${appBuildPath}`);
   console.log(`Generated ${path.join(BUILD_DIR, replacements.__DEPOT_VDF__)}\n`);
+
+  const prepareOnly = process.argv.includes('--prepare') || process.env.STEAM_PREPARE_ONLY === '1';
+  if (prepareOnly) {
+    console.log('Prepared depot content and VDFs (skipping upload).');
+    console.log(`Run: steamcmd +login <user> +run_app_build ${appBuildPath} +quit`);
+    return;
+  }
 
   const steamcmd = env.STEAMCMD || 'steamcmd';
   // steamcmd prompts for the password / Steam Guard code when not cached.
