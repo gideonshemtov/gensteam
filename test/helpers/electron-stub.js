@@ -15,12 +15,31 @@ class BrowserWindow {
     this.executedScripts = [];
     this._handlers = {};
     this.webContents = {
-      on: () => {},
-      once: () => {},
+      _handlers: {},
+      _zoom: 0,
+      zoomLevels: [],
+      on(event, callback) {
+        (this._handlers[event] ||= []).push(callback);
+      },
+      once(event, callback) {
+        (this._handlers[event] ||= []).push(callback);
+      },
+      emit(event, ...args) {
+        for (const callback of this._handlers[event] || []) {
+          callback(...args);
+        }
+      },
       setWindowOpenHandler: () => {},
       executeJavaScript: (code) => {
         this.executedScripts.push(code);
         return Promise.resolve();
+      },
+      setZoomLevel(level) {
+        this._zoom = level;
+        this.zoomLevels.push(level);
+      },
+      getZoomLevel() {
+        return this._zoom;
       },
     };
   }

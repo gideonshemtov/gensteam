@@ -44,6 +44,13 @@ class SettingsManager {
               type: 'boolean',
               default: false,
               description: 'Hide the menu bar (press Alt to show temporarily)'
+            },
+            zoomLevel: {
+              type: 'number',
+              default: 0,
+              minimum: -5,
+              maximum: 5,
+              description: 'Game window zoom level (negative is smaller, positive is larger)'
             }
           },
           additionalProperties: false
@@ -330,7 +337,7 @@ class SettingsManager {
     return value;
   }
 
-  set(path, value) {
+  set(path, value, { notify = true } = {}) {
     const keys = path.split('.');
     const newSettings = JSON.parse(JSON.stringify(this.settings));
     
@@ -341,7 +348,7 @@ class SettingsManager {
     }
     current[keys[keys.length - 1]] = value;
     
-    this.save(newSettings);
+    this.save(newSettings, { notify });
   }
 
   reset() {

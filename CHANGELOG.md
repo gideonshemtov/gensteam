@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Unit test suite using Node's built-in test runner (`pnpm test`)
 - Custom buttons can be added, edited, and removed from the Preferences UI
+- Text size (zoom) controls: View menu, Ctrl+= / Ctrl+- / Ctrl+0 shortcuts, and Ctrl+mouse wheel; the level is remembered across restarts
 
 ### Changed
 

@@ -2,6 +2,7 @@
 const { BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { applyZoom, stepZoom } = require('./ZoomController');
 
 // Hardcoded game client URL
 const GAME_URL = 'https://www.genesismud.org/play';
@@ -106,6 +107,13 @@ class WindowManager {
     // Load Genesis web client
     this.win.loadURL(GAME_URL);
 
+    // Apply the saved zoom level (affects game text size)
+    applyZoom(this.win, settings.ui.zoomLevel ?? 0);
+
+    // Ctrl + mouse wheel emits 'zoom-changed'; Electron does not apply the
+    // zoom itself, so step and remember it here.
+    this.setupZoomHandler();
+
     // Set up settings change listener
     this.setupSettingsListener();
 
@@ -149,6 +157,10 @@ class WindowManager {
 
   setupPageLoadHandler(settings) {
     this.win.webContents.once('did-finish-load', () => {
+      // Re-apply the saved zoom after navigation: Chromium restores its own
+      // per-host zoom level on load, which can override the value set at create.
+      applyZoom(this.win, settings.ui.zoomLevel ?? 0);
+
       this.win.webContents.executeJavaScript(`
         // Override beforeunload to prevent it from blocking window close
         window.addEventListener('beforeunload', function(e) {
@@ -196,6 +208,19 @@ class WindowManager {
   setupCloseHandler() {
     this.win.on('closed', () => {
       this.findBarManager.close();
+    });
+  }
+
+  setupZoomHandler() {
+    let lastZoomAt = 0;
+    this.win.webContents.on('zoom-changed', (_event, direction) => {
+      // Collapse burst/duplicate events so one wheel notch is one step.
+      const now = Date.now();
+      if (now - lastZoomAt < 50) {
+        return;
+      }
+      lastZoomAt = now;
+      stepZoom(this.settingsManager, this.win, direction === 'in' ? 1 : -1);
     });
   }
 

@@ -1,6 +1,7 @@
 // MenuBuilder.js
 const { Menu, dialog, app } = require('electron');
 const path = require('path');
+const { setZoom, stepZoom } = require('./ZoomController');
 
 class MenuBuilder {
   constructor(settingsManager, settingsWindow) {
@@ -81,6 +82,22 @@ class MenuBuilder {
                 findBar.webContents.send('focus-input');
               }
             }
+          },
+          { type: 'separator' },
+          {
+            label: 'Zoom In',
+            accelerator: 'CmdOrCtrl+=',
+            click: () => stepZoom(this.settingsManager, win, 1)
+          },
+          {
+            label: 'Zoom Out',
+            accelerator: 'CmdOrCtrl+-',
+            click: () => stepZoom(this.settingsManager, win, -1)
+          },
+          {
+            label: 'Reset Zoom',
+            accelerator: 'CmdOrCtrl+0',
+            click: () => setZoom(this.settingsManager, win, 0)
           },
           { type: 'separator' },
           {
