@@ -80,7 +80,7 @@ class SettingsManager {
                 },
                 {
                   icon: '⚡',
-                  title: 'Who Online',
+                  title: "Who's Online",
                   command: 'who',
                   color: '#FFC107'
                 }

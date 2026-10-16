@@ -148,7 +148,7 @@ The left sidebar contains customizable quick-action buttons for common commands.
 - **🔥 Check Inventory** — Executes `inventory` command
 - **🪄 Check Stats** — Executes `stats` command
 - **❤️ Check Health** — Executes `health` command
-- **⚡ Who Online** — Executes `who` command
+- **⚡ Who's Online** — Executes `who` command
 
 ### Customization
 
