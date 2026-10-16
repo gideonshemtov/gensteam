@@ -8,7 +8,7 @@ The official desktop client for [Genesis MUD](https://www.genesismud.org), built
 - **Customizable Button Panel**: Quick access to frequently used commands
 - **Command Timers**: Set up recurring commands that execute automatically at specified intervals
 - **Find in Page**: Search game text with Ctrl+F (Cmd+F on macOS)
-- **Adjustable Text Size**: Zoom the game text from the **Zoom** menu (which shows the current percentage), with Ctrl +/−/0 or Ctrl + mouse wheel
+- **Adjustable Text Size**: Zoom the game text with Ctrl +/−/0 or Ctrl + mouse wheel; a boxed percentage badge appears in the top-right
 - **Sound Triggers**: Play configured sounds from MUD client triggers via `mudAPI`
 - **Auto-hiding Menu Bar**: Clean, distraction-free interface
 - **Settings Management**: Customize the interface, buttons, sounds, and window defaults

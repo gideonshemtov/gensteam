@@ -1,7 +1,7 @@
 // MenuBuilder.js
 const { Menu, dialog, app } = require('electron');
 const path = require('path');
-const { setZoom, stepZoom, zoomPercent, ZOOM_STEP } = require('./ZoomController');
+const { setZoom, stepZoom, ZOOM_STEP } = require('./ZoomController');
 
 class MenuBuilder {
   constructor(settingsManager, settingsWindow, onZoomChanged) {
@@ -153,9 +153,9 @@ class MenuBuilder {
         ]
       },
       {
-        // Top-level zoom indicator: shows the current zoom percentage and
-        // hosts the zoom controls. Rebuilt whenever the level changes.
-        label: `Zoom: ${zoomPercent(settings.ui.zoomLevel ?? 0)}%`,
+        // Zoom controls. The current percentage is shown as an on-screen
+        // badge in the game window (see WindowManager.showZoomBadge).
+        label: 'Zoom',
         submenu: [
           {
             label: 'Zoom In',

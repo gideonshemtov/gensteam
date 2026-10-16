@@ -75,3 +75,16 @@ test('ctrl + wheel zoom steps the level and persists it', () => {
   // The immediate second event is inside the throttle window and is ignored.
   assert.equal(settingsManager.get('ui.zoomLevel'), 2.5);
 });
+
+test('zoom changes inject a boxed percentage badge into the game window', () => {
+  const manager = new WindowManager(makeSettingsManager(), { createMenu: () => ({}) }, null);
+  const win = manager.create();
+  win.executedScripts.length = 0;
+
+  win.webContents.emit('zoom-changed', {}, 'in'); // level 2 -> 2.5 => 158%
+
+  const injected = win.executedScripts.join('\n');
+  assert.ok(injected.includes('__genesis_zoom_badge'));
+  assert.ok(injected.includes("'158%'"));
+  assert.ok(injected.includes('position:fixed'));
+});

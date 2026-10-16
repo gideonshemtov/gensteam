@@ -2,7 +2,7 @@
 const { BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { applyZoom, stepZoom, ZOOM_STEP } = require('./ZoomController');
+const { applyZoom, stepZoom, ZOOM_STEP, zoomPercent } = require('./ZoomController');
 
 // Hardcoded game client URL
 const GAME_URL = 'https://www.genesismud.org/play';
@@ -220,7 +220,38 @@ class WindowManager {
       }
       lastZoomAt = now;
       stepZoom(this.settingsManager, this.win, direction === 'in' ? ZOOM_STEP : -ZOOM_STEP);
-      this.refreshMenu();
+      this.showZoomBadge();
+    });
+  }
+
+  // Show a boxed zoom-percentage badge in the top-right of the game window,
+  // fading out shortly after the last change.
+  showZoomBadge() {
+    const percent = zoomPercent(this.settingsManager.get('ui.zoomLevel') ?? 0);
+    this.win.webContents.executeJavaScript(`
+      (function () {
+        var ID = '__genesis_zoom_badge';
+        var badge = document.getElementById(ID);
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.id = ID;
+          badge.style.cssText =
+            'position:fixed;top:12px;right:12px;z-index:2147483647;' +
+            'background:rgba(20,20,20,0.85);color:#fff;padding:6px 14px;border-radius:8px;' +
+            'border:1px solid rgba(255,255,255,0.25);font:600 14px system-ui,-apple-system,sans-serif;' +
+            'box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:opacity 0.3s ease;opacity:1;' +
+            'pointer-events:none;user-select:none;';
+          document.documentElement.appendChild(badge);
+        }
+        badge.textContent = '${percent}%';
+        badge.style.opacity = '1';
+        clearTimeout(window.__genesisZoomBadgeTimer);
+        window.__genesisZoomBadgeTimer = setTimeout(function () {
+          badge.style.opacity = '0';
+        }, 1200);
+      })();
+    `).catch(() => {
+      // Ignore if the page is not ready.
     });
   }
 

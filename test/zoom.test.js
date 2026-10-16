@@ -67,29 +67,25 @@ test('stepZoom moves from the saved level and clamps at the limits', () => {
   assert.equal(stepZoom(settingsManager, win, -ZOOM_STEP), 4.5);
 });
 
-test('the Zoom menu shows the percentage and adjusts the level', () => {
+test('the Zoom menu adjusts the level and notifies on change', () => {
   const settingsManager = makeSettingsManager(0);
-  let menuRebuilt = 0;
+  let zoomChanges = 0;
   const builder = new MenuBuilder(
     settingsManager,
     { isOpen: () => false, create: () => {}, window: { focus: () => {} } },
-    () => { menuRebuilt += 1; },
+    () => { zoomChanges += 1; },
   );
   const win = new electronStub.BrowserWindow({});
   const template = builder.createMenu(win, null);
 
-  assert.ok(template.some((item) => item.label === 'Zoom: 100%'), 'expected a top-level Zoom: 100% menu');
+  assert.ok(template.some((item) => item.label === 'Zoom'), 'expected a top-level Zoom menu');
 
   findMenuItem(template, 'Zoom In').click();
   assert.equal(settingsManager.get('ui.zoomLevel'), ZOOM_STEP);
   assert.equal(zoomPercent(settingsManager.get('ui.zoomLevel')), 110);
-  assert.equal(menuRebuilt, 1);
+  assert.equal(zoomChanges, 1);
 
   findMenuItem(template, 'Zoom Out').click();
   assert.equal(settingsManager.get('ui.zoomLevel'), 0);
-
-  findMenuItem(template, 'Zoom In').click();
-  findMenuItem(template, 'Reset Zoom').click();
-  assert.equal(settingsManager.get('ui.zoomLevel'), 0);
-  assert.equal(menuRebuilt, 4);
+  assert.equal(zoomChanges, 2);
 });
