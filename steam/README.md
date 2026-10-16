@@ -90,9 +90,12 @@ App → **Installation → General → Launch Options** → add:
 
 ## Recommended first run
 
-Publish to a **beta branch** first (`STEAM_SETLIVE=beta` in `.env`), install from
-Steam (Properties → Betas), verify, then re-run with `STEAM_SETLIVE=` empty to
-publish to the default branch.
+Upload **without publishing** first: leave `STEAM_SETLIVE=` empty in `.env` so
+the build is committed to Steamworks but not set live on any branch. Then, in
+Steamworks → your app → **SteamPipe → Builds**, select the new build and
+**Set Build Live** on a **beta** branch. Install it via Steam (Properties →
+Betas) to test. When you're happy, set that build live on the **default**
+branch (or upload again with `STEAM_SETLIVE=beta`).
 
 ## Generated / ignored files
 

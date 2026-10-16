@@ -124,6 +124,11 @@ function main() {
   console.log(`\nGenerated ${appBuildPath}`);
   console.log(`Generated ${path.join(BUILD_DIR, replacements.__DEPOT_VDF__)}\n`);
 
+  if (!replacements.__SETLIVE__) {
+    console.log('Note: STEAM_SETLIVE is empty - the build will be uploaded but NOT set live on');
+    console.log('      any branch. Set it live in Steamworks to test, then promote it.\n');
+  }
+
   const prepareOnly = process.argv.includes('--prepare') || process.env.STEAM_PREPARE_ONLY === '1';
   if (prepareOnly) {
     console.log('Prepared depot content and VDFs (skipping upload).');
