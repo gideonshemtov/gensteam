@@ -1,0 +1,10 @@
+// SteamPipe depot build script for GenesisClient (Linux).
+"depotbuild"
+{
+	"depot"        "__DEPOT_ID__"
+	"contentroot"  "__CONTENT_ROOT__"
+	"files"
+	{
+		"*"  "*"
+	}
+}

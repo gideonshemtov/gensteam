@@ -1,0 +1,14 @@
+// SteamPipe app build script for GenesisClient (Linux).
+"appbuild"
+{
+	"appid"        "__APP_ID__"
+	"desc"         "__DESC__"
+	"buildoutput"  "__BUILD_OUTPUT__"
+	"contentroot"  "__CONTENT_ROOT__"
+	"setlive"      "__SETLIVE__"
+	"preview"      "0"
+	"depots"
+	{
+		"__DEPOT_ID__"  "__DEPOT_VDF__"
+	}
+}

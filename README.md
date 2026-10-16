@@ -62,6 +62,17 @@ pnpm run dist:linux
 pnpm run pack
 ```
 
+### Publishing to Steam (Linux)
+
+Builds the unpacked Linux app and uploads it to Steam via SteamPipe. Put your
+App ID and Depot ID in a `.env` file (see `.env.example`) and follow
+[`steam/README.md`](steam/README.md):
+
+```bash
+pnpm run dist:linux:dir   # build dist/linux-unpacked/
+pnpm run steam:upload     # copy + upload to Steam
+```
+
 ## Testing
 
 The project uses Node's built-in test runner, so no extra dependencies are required:
@@ -102,6 +113,7 @@ Main-process modules are exercised against a lightweight `electron` stub
 │   └── settings.html         # Settings interface
 ├── assets/                   # Application icons and sound files
 ├── test/                     # Unit tests (Node built-in test runner)
+├── steam/                    # SteamPipe upload scripts and docs
 ├── package.json              # Project configuration and build settings
 └── README.md                 # This file
 ```
