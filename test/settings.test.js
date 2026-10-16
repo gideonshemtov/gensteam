@@ -7,13 +7,13 @@ const os = require('os');
 const path = require('path');
 
 const { electronStub } = require('./helpers/electron-stub');
+const { muteConsole } = require('./helpers/test-utils');
 const SettingsManager = require('../settings/SettingsManager');
 
 const tempDirs = [];
 
-const originalLog = console.log;
-test.before(() => { console.log = () => {}; });
-test.after(() => { console.log = originalLog; });
+const restoreConsole = muteConsole();
+test.after(() => restoreConsole());
 
 function makeManager() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gensteam-settings-'));

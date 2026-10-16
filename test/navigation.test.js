@@ -26,7 +26,7 @@ function createNavigationHarness() {
 
   const manager = new WindowManager({}, {}, null);
   manager.win = win;
-  manager.setupNavigationHandlers({});
+  manager.setupNavigationHandlers();
 
   return handlers;
 }

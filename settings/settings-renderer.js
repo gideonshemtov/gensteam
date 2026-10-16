@@ -201,9 +201,7 @@ class SettingsRenderer {
         onInput(input.value);
         applyPreview();
         this.markAsChanged();
-        if (this.currentSection !== 'json') {
-          this.updateJsonEditor();
-        }
+        this.syncJsonEditor();
       });
 
       label.append(caption, input);
@@ -250,9 +248,7 @@ class SettingsRenderer {
 
     this.markAsChanged();
     this.populateButtonList();
-    if (this.currentSection !== 'json') {
-      this.updateJsonEditor();
-    }
+    this.syncJsonEditor();
   }
 
   removeCustomButton(index) {
@@ -264,9 +260,7 @@ class SettingsRenderer {
     buttons.splice(index, 1);
     this.markAsChanged();
     this.populateButtonList();
-    if (this.currentSection !== 'json') {
-      this.updateJsonEditor();
-    }
+    this.syncJsonEditor();
   }
 
   // Only accept well-formed hex colors; anything else falls back to a neutral grey.
@@ -277,6 +271,13 @@ class SettingsRenderer {
   updateJsonEditor() {
     const editor = document.getElementById('jsonEditor');
     editor.value = JSON.stringify(this.currentSettings, null, 2);
+  }
+
+  // Keep the JSON editor in sync unless the user is currently editing it.
+  syncJsonEditor() {
+    if (this.currentSection !== 'json') {
+      this.updateJsonEditor();
+    }
   }
 
   switchSection(section) {
@@ -333,9 +334,7 @@ class SettingsRenderer {
     }
 
     // Update JSON editor if not in JSON section
-    if (this.currentSection !== 'json') {
-      this.updateJsonEditor();
-    }
+    this.syncJsonEditor();
   }
 
   async saveSettings() {
@@ -636,23 +635,24 @@ class SettingsRenderer {
   }
 
   showError(message) {
-    const errorEl = document.getElementById('errorMessage');
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
-    
-    setTimeout(() => {
-      errorEl.style.display = 'none';
-    }, 5000);
+    this.showMessage('errorMessage', message, 5000);
   }
 
   showSuccess(message) {
-    const successEl = document.getElementById('successMessage');
-    successEl.textContent = message;
-    successEl.style.display = 'block';
-    
-    setTimeout(() => {
-      successEl.style.display = 'none';
-    }, 3000);
+    this.showMessage('successMessage', message, 3000);
+  }
+
+  showMessage(elementId, message, timeout) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    element.textContent = message;
+    element.style.display = 'block';
+
+    clearTimeout(element.__messageTimer);
+    element.__messageTimer = setTimeout(() => {
+      element.style.display = 'none';
+    }, timeout);
   }
 }
 

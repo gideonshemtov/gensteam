@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const { GAME_ORIGIN } = require('./WindowManager');
+const { sameOrigin } = require('./origin');
 
 class TimerIPC {
   constructor(settingsManager) {
@@ -22,11 +23,7 @@ class TimerIPC {
     if (!frame || frame.parent) {
       return false;
     }
-    try {
-      return new URL(frame.url).origin === GAME_ORIGIN;
-    } catch {
-      return false;
-    }
+    return sameOrigin(frame.url, GAME_ORIGIN);
   }
 
   // Persist only the timers slice; any other settings in the payload are ignored.

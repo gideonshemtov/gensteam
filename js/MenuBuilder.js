@@ -42,8 +42,7 @@ class MenuBuilder {
               this.isUpdatingMenu = true;
               setTimeout(() => {
                 try {
-                  const menu = this.createMenu(win, findBar);
-                  Menu.setApplicationMenu(menu);
+                  this.applyMenu(win, findBar);
                 } finally {
                   this.isUpdatingMenu = false;
                 }
@@ -129,8 +128,7 @@ class MenuBuilder {
                       if (!this.isUpdatingMenu) {
                         this.isUpdatingMenu = true;
                         try {
-                          const menu = this.createMenu(win, findBar);
-                          Menu.setApplicationMenu(menu);
+                          this.applyMenu(win, findBar);
                         } finally {
                           this.isUpdatingMenu = false;
                         }
@@ -274,6 +272,11 @@ class MenuBuilder {
     }
 
     return Menu.buildFromTemplate(template);
+  }
+
+  // Build and install the application menu in one step.
+  applyMenu(win, findBar) {
+    Menu.setApplicationMenu(this.createMenu(win, findBar));
   }
 }
 

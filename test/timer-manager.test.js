@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const TimerManager = require('../js/TimerManager');
+const { muteConsole } = require('./helpers/test-utils');
 
 // TimerManager runs inside the renderer in production; provide the globals it touches.
 const savedPayloads = [];
@@ -17,9 +18,8 @@ global.window = {
 };
 global.document = { getElementById: () => null };
 
-const originalLog = console.log;
-test.before(() => { console.log = () => {}; });
-test.after(() => { console.log = originalLog; });
+const restoreConsole = muteConsole();
+test.after(() => restoreConsole());
 test.beforeEach(() => { savedPayloads.length = 0; });
 
 function makeManager() {

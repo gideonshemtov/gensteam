@@ -5,30 +5,17 @@ const assert = require('node:assert/strict');
 
 const { WindowManager, GAME_URL, GAME_ORIGIN } = require('../js/WindowManager');
 const { loadedUrls } = require('./helpers/electron-stub');
+const { fakeSettings } = require('./helpers/test-utils');
 
 function makeSettingsManager() {
-  let settings = {
+  return fakeSettings({
     ui: { hideMenuBar: false, zoomLevel: 2 },
     window: { width: 1280, height: 800 },
     // Leftover value that must now be ignored in favour of the hardcoded URL.
     game: { startUrl: 'https://evil.example' },
     timers: { activeTimers: [] },
     buttons: { customButtons: [] },
-  };
-
-  return {
-    get: (path) => (path ? path.split('.').reduce((value, key) => value?.[key], settings) : settings),
-    set: (path, value) => {
-      const keys = path.split('.');
-      let current = settings;
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      current[keys[keys.length - 1]] = value;
-      return value;
-    },
-    subscribe: () => () => {},
-  };
+  });
 }
 
 test('the hardcoded URL targets the Genesis origin', () => {
@@ -76,7 +63,7 @@ test('ctrl + wheel zoom steps the level and persists it', () => {
   assert.equal(settingsManager.get('ui.zoomLevel'), 2.5);
 });
 
-test('zoom changes inject a boxed percentage badge into the game window', () => {
+test('zoom changes show the reusable toast with the percentage', () => {
   const manager = new WindowManager(makeSettingsManager(), { createMenu: () => ({}) }, null);
   const win = manager.create();
   win.executedScripts.length = 0;
@@ -84,7 +71,6 @@ test('zoom changes inject a boxed percentage badge into the game window', () => 
   win.webContents.emit('zoom-changed', {}, 'in'); // level 2 -> 2.5 => 158%
 
   const injected = win.executedScripts.join('\n');
-  assert.ok(injected.includes('__genesis_zoom_badge'));
+  assert.ok(injected.includes('window.pageToast'));
   assert.ok(injected.includes("'158%'"));
-  assert.ok(injected.includes('position:fixed'));
 });

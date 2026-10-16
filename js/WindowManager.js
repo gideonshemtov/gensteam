@@ -3,6 +3,7 @@ const { BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { applyZoom, stepZoom, ZOOM_STEP, zoomPercent } = require('./ZoomController');
+const { sameOrigin } = require('./origin');
 
 // Hardcoded game client URL
 const GAME_URL = 'https://www.genesismud.org/play';
@@ -29,12 +30,18 @@ function openExternalSafely(url) {
 // Function to initialize button panel, timer manager, sound manager, and MUD connector
 function initializeButtonPanelAndTimers(win, settings) {
   // Read the class files
+  const commandSenderCode = fs.readFileSync(path.join(__dirname, 'CommandSender.js'), 'utf8');
+  const pageToastCode = fs.readFileSync(path.join(__dirname, 'PageToast.js'), 'utf8');
   const buttonPanelCode = fs.readFileSync(path.join(__dirname, 'ButtonPanel.js'), 'utf8');
   const timerManagerCode = fs.readFileSync(path.join(__dirname, 'TimerManager.js'), 'utf8');
   const soundManagerCode = fs.readFileSync(path.join(__dirname, 'SoundManager.js'), 'utf8');
   const mudConnectorCode = fs.readFileSync(path.join(__dirname, 'MudConnector.js'), 'utf8');
   
   return win.webContents.executeJavaScript(`
+    // Shared helpers (must be defined before the classes that use them)
+    ${pageToastCode}
+    ${commandSenderCode}
+    
     // Load TimerManager class first
     ${timerManagerCode}
     
@@ -120,7 +127,7 @@ class WindowManager {
     this.setupPageLoadHandler(settings);
 
     // Set up navigation handlers
-    this.setupNavigationHandlers(settings);
+    this.setupNavigationHandlers();
 
     // Set up window close handler
     this.setupCloseHandler();
@@ -178,7 +185,7 @@ class WindowManager {
     });
   }
 
-  setupNavigationHandlers(settings) {
+  setupNavigationHandlers() {
     // Open all new windows/links in the external browser
     this.win.webContents.setWindowOpenHandler(({ url }) => {
       openExternalSafely(url);
@@ -187,17 +194,9 @@ class WindowManager {
 
     // Prevent unexpected navigations away from Genesis
     this.win.webContents.on('will-navigate', (event, url) => {
-      let parsed;
-      try {
-        parsed = new URL(url);
-      } catch {
-        event.preventDefault();
-        return;
-      }
-
       // Compare parsed origins exactly so look-alike domains
       // (e.g. https://www.genesismud.org.attacker.example) are rejected.
-      if (parsed.origin !== GAME_ORIGIN) {
+      if (!sameOrigin(url, GAME_ORIGIN)) {
         event.preventDefault();
         openExternalSafely(url);
       }
@@ -228,29 +227,9 @@ class WindowManager {
   // fading out shortly after the last change.
   showZoomBadge() {
     const percent = zoomPercent(this.settingsManager.get('ui.zoomLevel') ?? 0);
-    this.win.webContents.executeJavaScript(`
-      (function () {
-        var ID = '__genesis_zoom_badge';
-        var badge = document.getElementById(ID);
-        if (!badge) {
-          badge = document.createElement('div');
-          badge.id = ID;
-          badge.style.cssText =
-            'position:fixed;top:12px;right:12px;z-index:2147483647;' +
-            'background:rgba(20,20,20,0.85);color:#fff;padding:6px 14px;border-radius:8px;' +
-            'border:1px solid rgba(255,255,255,0.25);font:600 14px system-ui,-apple-system,sans-serif;' +
-            'box-shadow:0 2px 10px rgba(0,0,0,0.4);transition:opacity 0.3s ease;opacity:1;' +
-            'pointer-events:none;user-select:none;';
-          document.documentElement.appendChild(badge);
-        }
-        badge.textContent = '${percent}%';
-        badge.style.opacity = '1';
-        clearTimeout(window.__genesisZoomBadgeTimer);
-        window.__genesisZoomBadgeTimer = setTimeout(function () {
-          badge.style.opacity = '0';
-        }, 1200);
-      })();
-    `).catch(() => {
+    this.win.webContents.executeJavaScript(
+      `if (window.pageToast) { window.pageToast('${percent}%'); }`,
+    ).catch(() => {
       // Ignore if the page is not ready.
     });
   }

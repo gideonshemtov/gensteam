@@ -6,24 +6,10 @@ const assert = require('node:assert/strict');
 const SettingsWindow = require('../settings/SettingsWindow');
 const MenuBuilder = require('../js/MenuBuilder');
 const { electronStub } = require('./helpers/electron-stub');
+const { findMenuItem, fakeSettings } = require('./helpers/test-utils');
 
-function makeSettingsManager() {
-  const settings = { ui: { showButtonPanel: true, hideMenuBar: false } };
-  return {
-    get: (path) => (path ? path.split('.').reduce((v, k) => v?.[k], settings) : settings),
-  };
-}
-
-function findMenuItem(template, label) {
-  for (const item of template) {
-    if (item.label === label) return item;
-    if (item.submenu) {
-      const found = findMenuItem(item.submenu, label);
-      if (found) return found;
-    }
-  }
-  return null;
-}
+const makeSettingsManager = () =>
+  fakeSettings({ ui: { showButtonPanel: true, hideMenuBar: false } });
 
 test('preferences opens as a modal child of the game window', () => {
   const settingsWindow = new SettingsWindow();

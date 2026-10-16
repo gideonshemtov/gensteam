@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game URL is now hardcoded and no longer configurable through settings
 - Preferences now opens as a modal dialog that blocks the game window until it is closed
 - The game window is dimmed while preferences are open to show it is inactive
+- Consolidated command sending and added a reusable on-screen toast (used for the zoom indicator)
 
 ### Removed
 

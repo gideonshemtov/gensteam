@@ -4,35 +4,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { electronStub } = require('./helpers/electron-stub');
+const { findMenuItem, fakeSettings } = require('./helpers/test-utils');
 const { clampZoom, zoomPercent, setZoom, stepZoom, ZOOM_STEP } = require('../js/ZoomController');
 const MenuBuilder = require('../js/MenuBuilder');
 
-function makeSettingsManager(zoomLevel = 0) {
-  let settings = { ui: { showButtonPanel: true, hideMenuBar: false, zoomLevel } };
-  return {
-    get: (path) => (path ? path.split('.').reduce((value, key) => value?.[key], settings) : settings),
-    set: (path, value) => {
-      const keys = path.split('.');
-      let current = settings;
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]];
-      }
-      current[keys[keys.length - 1]] = value;
-      return value;
-    },
-  };
-}
-
-function findMenuItem(template, label) {
-  for (const item of template) {
-    if (item.label === label) return item;
-    if (item.submenu) {
-      const found = findMenuItem(item.submenu, label);
-      if (found) return found;
-    }
-  }
-  return null;
-}
+const makeSettingsManager = (zoomLevel = 0) =>
+  fakeSettings({ ui: { showButtonPanel: true, hideMenuBar: false, zoomLevel } });
 
 test('clampZoom keeps the level within bounds', () => {
   assert.equal(clampZoom(0), 0);

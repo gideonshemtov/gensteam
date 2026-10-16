@@ -85,6 +85,9 @@ Main-process modules are exercised against a lightweight `electron` stub
 ├── js/
 │   ├── ButtonPanel.js        # Button panel management
 │   ├── TimerManager.js       # Command timer functionality
+│   ├── CommandSender.js      # Shared command-sending (mudAPI / input fallback)
+│   ├── PageToast.js          # Reusable on-screen toast (zoom indicator)
+│   ├── ZoomController.js     # Shared zoom logic
 │   ├── MudConnector.js       # WebSocket bridge and mudAPI
 │   ├── SoundManager.js       # In-page sound playback
 │   ├── SoundProtocol.js      # Custom protocol for bundled sound files

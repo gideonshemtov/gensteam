@@ -9,13 +9,13 @@ const path = require('node:path');
 const TimerIPC = require('../js/TimerIPC');
 const SettingsManager = require('../settings/SettingsManager');
 const { ipcHandlers, electronStub } = require('./helpers/electron-stub');
+const { muteConsole } = require('./helpers/test-utils');
 const { GAME_ORIGIN } = require('../js/WindowManager');
 
 const tempDirs = [];
-const originalLog = console.log;
-test.before(() => { console.log = () => {}; });
+const restoreConsole = muteConsole();
 test.after(() => {
-  console.log = originalLog;
+  restoreConsole();
   for (const dir of tempDirs) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -53,17 +53,6 @@ function setup() {
 
 const trustedEvent = () => ({ senderFrame: { url: `${GAME_ORIGIN}/play`, parent: null } });
 
-// The handlers log expected rejections; keep the test output clean.
-function silenceConsole(t) {
-  const original = { error: console.error, warn: console.warn };
-  console.error = () => {};
-  console.warn = () => {};
-  t.after(() => {
-    console.error = original.error;
-    console.warn = original.warn;
-  });
-}
-
 test('accepts validated timers from the game frame', () => {
   const { handler, settingsManager } = setup();
   const result = handler(trustedEvent(), {
@@ -76,8 +65,7 @@ test('accepts validated timers from the game frame', () => {
   });
 });
 
-test('rejects untrusted senders', (t) => {
-  silenceConsole(t);
+test('rejects untrusted senders', () => {
   const { handler, saved } = setup();
 
   assert.equal(handler({ senderFrame: { url: 'https://evil.example/', parent: null } }, { activeTimers: [] }).success, false);
@@ -104,8 +92,7 @@ test('ignores non-timer settings smuggled into the payload', () => {
   );
 });
 
-test('rejects invalid timer payloads', (t) => {
-  silenceConsole(t);
+test('rejects invalid timer payloads', () => {
   const { handler, saved } = setup();
 
   const invalidPayloads = [
