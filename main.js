@@ -31,7 +31,7 @@ app.whenReady().then(() => {
   new SettingsIPC(settingsManager);
   settingsWindow = new SettingsWindow();
 
-  menuBuilder = new MenuBuilder(settingsManager, settingsWindow);
+  menuBuilder = new MenuBuilder(settingsManager, settingsWindow, () => windowManager && windowManager.refreshMenu());
 
   timerIPC = new TimerIPC(settingsManager);
   timerIPC.setupHandlers();

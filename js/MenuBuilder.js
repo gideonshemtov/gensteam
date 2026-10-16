@@ -1,12 +1,13 @@
 // MenuBuilder.js
 const { Menu, dialog, app } = require('electron');
 const path = require('path');
-const { setZoom, stepZoom } = require('./ZoomController');
+const { setZoom, stepZoom, zoomPercent, ZOOM_STEP } = require('./ZoomController');
 
 class MenuBuilder {
-  constructor(settingsManager, settingsWindow) {
+  constructor(settingsManager, settingsWindow, onZoomChanged) {
     this.settingsManager = settingsManager;
     this.settingsWindow = settingsWindow;
+    this.onZoomChanged = onZoomChanged;
     this.isUpdatingMenu = false;
   }
 
@@ -85,22 +86,6 @@ class MenuBuilder {
           },
           { type: 'separator' },
           {
-            label: 'Zoom In',
-            accelerator: 'CmdOrCtrl+=',
-            click: () => stepZoom(this.settingsManager, win, 1)
-          },
-          {
-            label: 'Zoom Out',
-            accelerator: 'CmdOrCtrl+-',
-            click: () => stepZoom(this.settingsManager, win, -1)
-          },
-          {
-            label: 'Reset Zoom',
-            accelerator: 'CmdOrCtrl+0',
-            click: () => setZoom(this.settingsManager, win, 0)
-          },
-          { type: 'separator' },
-          {
             label: 'Preferences...',
             accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
             click: () => {
@@ -163,6 +148,37 @@ class MenuBuilder {
             accelerator: 'F12',
             click: () => {
               win.webContents.toggleDevTools();
+            }
+          }
+        ]
+      },
+      {
+        // Top-level zoom indicator: shows the current zoom percentage and
+        // hosts the zoom controls. Rebuilt whenever the level changes.
+        label: `Zoom: ${zoomPercent(settings.ui.zoomLevel ?? 0)}%`,
+        submenu: [
+          {
+            label: 'Zoom In',
+            accelerator: 'CmdOrCtrl+=',
+            click: () => {
+              stepZoom(this.settingsManager, win, ZOOM_STEP);
+              this.onZoomChanged?.();
+            }
+          },
+          {
+            label: 'Zoom Out',
+            accelerator: 'CmdOrCtrl+-',
+            click: () => {
+              stepZoom(this.settingsManager, win, -ZOOM_STEP);
+              this.onZoomChanged?.();
+            }
+          },
+          {
+            label: 'Reset Zoom',
+            accelerator: 'CmdOrCtrl+0',
+            click: () => {
+              setZoom(this.settingsManager, win, 0);
+              this.onZoomChanged?.();
             }
           }
         ]

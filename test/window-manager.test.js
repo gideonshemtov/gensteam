@@ -68,10 +68,10 @@ test('ctrl + wheel zoom steps the level and persists it', () => {
   const win = manager.create();
 
   win.webContents.emit('zoom-changed', {}, 'in');
-  assert.equal(settingsManager.get('ui.zoomLevel'), 3);
-  assert.equal(win.webContents.getZoomLevel(), 3);
+  assert.equal(settingsManager.get('ui.zoomLevel'), 2.5);
+  assert.equal(win.webContents.getZoomLevel(), 2.5);
 
   win.webContents.emit('zoom-changed', {}, 'out');
   // The immediate second event is inside the throttle window and is ignored.
-  assert.equal(settingsManager.get('ui.zoomLevel'), 3);
+  assert.equal(settingsManager.get('ui.zoomLevel'), 2.5);
 });

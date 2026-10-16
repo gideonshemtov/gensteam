@@ -2,7 +2,7 @@
 const { BrowserWindow, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { applyZoom, stepZoom } = require('./ZoomController');
+const { applyZoom, stepZoom, ZOOM_STEP } = require('./ZoomController');
 
 // Hardcoded game client URL
 const GAME_URL = 'https://www.genesismud.org/play';
@@ -100,15 +100,14 @@ class WindowManager {
     // Maximize the window on start
     this.win.maximize();
 
-    // Set up the menu (find bar will be set up later)
-    const menu = this.menuBuilder.createMenu(this.win, null);
-    Menu.setApplicationMenu(menu);
-
     // Load Genesis web client
     this.win.loadURL(GAME_URL);
 
     // Apply the saved zoom level (affects game text size)
     applyZoom(this.win, settings.ui.zoomLevel ?? 0);
+
+    // Build the menu now so the zoom percentage reflects the applied level.
+    this.refreshMenu();
 
     // Ctrl + mouse wheel emits 'zoom-changed'; Electron does not apply the
     // zoom itself, so step and remember it here.
@@ -220,8 +219,16 @@ class WindowManager {
         return;
       }
       lastZoomAt = now;
-      stepZoom(this.settingsManager, this.win, direction === 'in' ? 1 : -1);
+      stepZoom(this.settingsManager, this.win, direction === 'in' ? ZOOM_STEP : -ZOOM_STEP);
+      this.refreshMenu();
     });
+  }
+
+  // Rebuild the application menu so the top-level zoom percentage stays current.
+  refreshMenu() {
+    const findBar = this.findBarManager ? this.findBarManager.get() : null;
+    const menu = this.menuBuilder.createMenu(this.win, findBar);
+    Menu.setApplicationMenu(menu);
   }
 
   setupFindBar() {
@@ -231,8 +238,7 @@ class WindowManager {
       this.findBarManager.setupIPCHandlers();
 
       // Update the menu with find bar reference
-      const menu = this.menuBuilder.createMenu(this.win, this.findBarManager.get());
-      Menu.setApplicationMenu(menu);
+      this.refreshMenu();
     }
   }
 

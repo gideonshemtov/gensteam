@@ -2,8 +2,16 @@
 const MIN_ZOOM = -5;
 const MAX_ZOOM = 5;
 
+// Each step is a 20% * 0.5 = ~9.5% change, which feels smoother than a full level.
+const ZOOM_STEP = 0.5;
+
 function clampZoom(level) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, level));
+}
+
+// Electron maps zoom levels to a factor of 1.2^level (level 0 = 100%).
+function zoomPercent(level) {
+  return Math.round(Math.pow(1.2, level) * 100);
 }
 
 // Apply a zoom level to a window's web contents and return the clamped value.
@@ -30,4 +38,4 @@ function stepZoom(settingsManager, win, delta) {
   return setZoom(settingsManager, win, current + delta);
 }
 
-module.exports = { MIN_ZOOM, MAX_ZOOM, clampZoom, applyZoom, setZoom, stepZoom };
+module.exports = { MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, clampZoom, zoomPercent, applyZoom, setZoom, stepZoom };
