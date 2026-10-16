@@ -3,8 +3,10 @@
 {
 	"depot"        "__DEPOT_ID__"
 	"contentroot"  "__CONTENT_ROOT__"
-	"files"
+	"FileMapping"
 	{
-		"*"  "*"
+		"LocalPath"  "*"
+		"DepotPath"  "."
+		"recursive"  "1"
 	}
 }
