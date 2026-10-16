@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 
 const SettingsWindow = require('../settings/SettingsWindow');
 const MenuBuilder = require('../js/MenuBuilder');
+const { electronStub } = require('./helpers/electron-stub');
 
 function makeSettingsManager() {
   const settings = { ui: { showButtonPanel: true, hideMenuBar: false } };
@@ -50,6 +51,25 @@ test('create() focuses the existing window instead of opening a second one', () 
   const second = settingsWindow.create(parent);
 
   assert.equal(second, first);
+});
+
+test('dims the game window while preferences are open and restores it on close', () => {
+  const settingsWindow = new SettingsWindow();
+  const parent = new electronStub.BrowserWindow({});
+
+  const child = settingsWindow.create(parent);
+
+  assert.ok(
+    parent.executedScripts.some((code) => code.includes('genesis-inactive-overlay')),
+    'expected an inactive overlay to be injected into the game window',
+  );
+
+  child.emit('closed');
+
+  assert.ok(
+    parent.executedScripts.some((code) => code.includes('.remove()')),
+    'expected the inactive overlay to be removed when preferences close',
+  );
 });
 
 test('the Preferences menu item passes the game window to the settings window', () => {

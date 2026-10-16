@@ -12,11 +12,16 @@ class BrowserWindow {
   constructor(options) {
     this.options = options;
     this.destroyed = false;
+    this.executedScripts = [];
+    this._handlers = {};
     this.webContents = {
       on: () => {},
       once: () => {},
       setWindowOpenHandler: () => {},
-      executeJavaScript: () => Promise.resolve(),
+      executeJavaScript: (code) => {
+        this.executedScripts.push(code);
+        return Promise.resolve();
+      },
     };
   }
   maximize() {}
@@ -32,7 +37,14 @@ class BrowserWindow {
   destroy() {
     this.destroyed = true;
   }
-  on() {}
+  on(event, callback) {
+    (this._handlers[event] ||= []).push(callback);
+  }
+  emit(event, ...args) {
+    for (const callback of this._handlers[event] || []) {
+      callback(...args);
+    }
+  }
   setAutoHideMenuBar() {}
   setMenuBarVisibility() {}
 }

@@ -2,6 +2,20 @@
 const { BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+// Overlay injected into the game window while preferences are open, so the
+// dimmed background signals that it is inactive. Uses DOM rather than
+// setOpacity() because window opacity is not supported on Linux.
+const INACTIVE_OVERLAY_ID = 'genesis-inactive-overlay';
+
+function runInWindow(win, code) {
+  if (!win || !win.webContents || win.isDestroyed?.()) {
+    return;
+  }
+  win.webContents.executeJavaScript(code).catch(() => {
+    // Ignore failures if the page is not ready or the window is gone.
+  });
+}
+
 class SettingsWindow {
   constructor() {
     this.window = null;
@@ -52,6 +66,9 @@ class SettingsWindow {
     // Load the settings UI
     this.window.loadFile(path.join(__dirname, 'settings.html'));
 
+    // Dim the game window to show it is inactive.
+    this.dimParent(parentWindow);
+
     // Handle window close attempt (before closing)
     this.window.on('close', (e) => {
       // Let the renderer handle unsaved changes
@@ -61,6 +78,7 @@ class SettingsWindow {
 
     // Handle window closed
     this.window.on('closed', () => {
+      this.undimParent(parentWindow);
       this.window = null;
     });
 
@@ -70,6 +88,31 @@ class SettingsWindow {
     }
 
     return this.window;
+  }
+
+  dimParent(parentWindow) {
+    runInWindow(parentWindow, `
+      (function () {
+        if (document.getElementById('${INACTIVE_OVERLAY_ID}')) return;
+        const overlay = document.createElement('div');
+        overlay.id = '${INACTIVE_OVERLAY_ID}';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '2147483647';
+        overlay.style.background = 'rgba(0, 0, 0, 0.45)';
+        overlay.style.pointerEvents = 'none';
+        document.documentElement.appendChild(overlay);
+      })();
+    `);
+  }
+
+  undimParent(parentWindow) {
+    runInWindow(parentWindow, `
+      (function () {
+        const overlay = document.getElementById('${INACTIVE_OVERLAY_ID}');
+        if (overlay) overlay.remove();
+      })();
+    `);
   }
 
   close() {
@@ -84,3 +127,4 @@ class SettingsWindow {
 }
 
 module.exports = SettingsWindow;
+
