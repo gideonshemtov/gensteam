@@ -58,6 +58,33 @@ To only generate the depot content and VDFs (no upload):
 pnpm run steam:prepare
 ```
 
+### Windows
+
+Build on a Windows machine (or SSH into one — enable **OpenSSH Server** first).
+No Docker needed; use native `steamcmd.exe`.
+
+```powershell
+pnpm run dist:win:dir          # -> dist\win-unpacked\
+```
+
+`.env` for the Windows depot:
+
+```
+STEAM_PLATFORM=windows
+STEAM_DEPOT_ID_WINDOWS=<windows depot id>
+STEAMCMD=C:\steamcmd\steamcmd.exe
+```
+
+```powershell
+pnpm run steam:upload
+```
+
+The launch executable is `GenesisClient.exe`; set the launch option's
+**Operating System** to Windows and leave arguments empty.
+
+Note: each platform needs its own **depot** in Steamworks (OS = Windows), and
+`STEAM_DEPOT_ID` acts as a fallback for `STEAM_DEPOT_ID_<PLATFORM>`.
+
 `steam:upload` will:
 
 - read `.env`,

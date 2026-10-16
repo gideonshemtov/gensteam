@@ -46,14 +46,31 @@ function renderTemplate(templateText, replacements) {
 }
 
 // Files at the content root that are executables but not the game binary.
-const NON_GAME_EXECUTABLES = new Set(['chrome-sandbox', 'chrome_crashpad_handler']);
+const NON_GAME_EXECUTABLES = new Set([
+  'chrome-sandbox',
+  'chrome_crashpad_handler',
+  'chrome_crashpad_handler.exe',
+]);
 
-// Executable files at the root of the build (the game binary), excluding the
-// Chromium helpers/libraries which are not launch targets.
-function detectExecutables(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && !NON_GAME_EXECUTABLES.has(entry.name) && !entry.name.includes('.'))
+// Default electron-builder output directory per platform.
+const PLATFORM_SOURCE = {
+  linux: 'dist/linux-unpacked',
+  windows: 'dist/win-unpacked',
+};
+
+// The game binary at the root of the build, excluding Chromium helpers/libraries.
+function detectExecutables(dir, platform = 'linux') {
+  const files = fs.readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
+    .filter((name) => !NON_GAME_EXECUTABLES.has(name));
+
+  if (platform === 'windows') {
+    return files.filter((name) => name.toLowerCase().endsWith('.exe'));
+  }
+
+  return files
+    .filter((name) => !name.includes('.'))
     .filter((name) => {
       try {
         return (fs.statSync(path.join(dir, name)).mode & 0o111) !== 0;
@@ -61,6 +78,29 @@ function detectExecutables(dir) {
         return false;
       }
     });
+}
+
+// Resolve the platform-specific config from .env.
+function resolveConfig(env) {
+  const platform = (env.STEAM_PLATFORM || 'linux').trim().toLowerCase();
+  if (!PLATFORM_SOURCE[platform]) {
+    fail(`Unknown STEAM_PLATFORM "${platform}" (expected one of: ${Object.keys(PLATFORM_SOURCE).join(', ')}).`);
+  }
+
+  const appId = (env.STEAM_APP_ID || '').trim();
+  if (!appId) fail('STEAM_APP_ID is not set in .env');
+
+  const depotId = (env[`STEAM_DEPOT_ID_${platform.toUpperCase()}`] || env.STEAM_DEPOT_ID || '').trim();
+  if (!depotId) {
+    fail(`STEAM_DEPOT_ID (or STEAM_DEPOT_ID_${platform.toUpperCase()}) is not set in .env`);
+  }
+
+  return {
+    platform,
+    appId,
+    depotId,
+    sourceDir: path.resolve(REPO_ROOT, env.STEAM_CONTENT_SOURCE || PLATFORM_SOURCE[platform]),
+  };
 }
 
 function copyDir(src, dest) {
@@ -76,22 +116,18 @@ function fail(message) {
 
 function main() {
   const env = loadEnv();
+  const { platform, appId, depotId, sourceDir } = resolveConfig(env);
 
-  const appId = (env.STEAM_APP_ID || '').trim();
-  const depotId = (env.STEAM_DEPOT_ID || '').trim();
-  if (!appId) fail('STEAM_APP_ID is not set in .env');
-  if (!depotId) fail('STEAM_DEPOT_ID is not set in .env');
-
-  const sourceDir = path.resolve(REPO_ROOT, env.STEAM_CONTENT_SOURCE || 'dist/linux-unpacked');
   if (!fs.existsSync(sourceDir) || fs.readdirSync(sourceDir).length === 0) {
-    fail(`Linux build not found at ${sourceDir}.\nRun "pnpm run dist:linux:dir" first.`);
+    fail(`${platform} build not found at ${sourceDir}.\nRun "pnpm run dist:${platform === 'windows' ? 'win' : 'linux'}:dir" first.`);
   }
 
+  console.log(`Platform       : ${platform}`);
   console.log(`Content source : ${sourceDir}`);
   console.log('Preparing depot content...');
   copyDir(sourceDir, CONTENT_DIR);
 
-  const executables = detectExecutables(CONTENT_DIR);
+  const executables = detectExecutables(CONTENT_DIR, platform);
   if (executables.length) {
     console.log(`Steam launch executable: ${executables.join(', ')}`);
   } else {
@@ -106,7 +142,7 @@ function main() {
     __DEPOT_ID__: depotId,
     __CONTENT_ROOT__: CONTENT_DIR.replace(/\\/g, '/'),
     __BUILD_OUTPUT__: OUTPUT_DIR.replace(/\\/g, '/'),
-    __DESC__: env.STEAM_BUILD_DESC || `GenesisClient linux ${new Date().toISOString().slice(0, 10)}`,
+    __DESC__: env.STEAM_BUILD_DESC || `GenesisClient ${platform} ${new Date().toISOString().slice(0, 10)}`,
     __SETLIVE__: env.STEAM_SETLIVE || '',
     __DEPOT_VDF__: `depot_build_${depotId}.vdf`,
   };
@@ -150,7 +186,7 @@ function main() {
   process.exit(result.status || 0);
 }
 
-module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables };
+module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables, resolveConfig };
 
 if (require.main === module) {
   main();

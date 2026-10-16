@@ -1,4 +1,4 @@
-// SteamPipe depot build script for GenesisClient (Linux).
+// SteamPipe depot build script for GenesisClient.
 "depotbuild"
 {
 	"depot"        "__DEPOT_ID__"

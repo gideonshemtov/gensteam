@@ -10,6 +10,7 @@
     "test": "node --test \"test/**/*.test.js\"",
     "pack": "electron-builder --dir",
     "dist:win": "electron-builder -w",
+    "dist:win:dir": "electron-builder --win --dir",
     "dist:mac": "electron-builder -m",
     "dist:linux": "electron-builder -l",
     "dist:linux:dir": "electron-builder --linux --dir",

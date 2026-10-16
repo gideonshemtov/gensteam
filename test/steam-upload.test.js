@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { parseEnv, renderTemplate, detectExecutables } = require('../steam/upload');
+const { parseEnv, renderTemplate, detectExecutables, resolveConfig } = require('../steam/upload');
 const { tempDir } = require('./helpers/test-utils');
 
 test('parseEnv reads key/value pairs and ignores comments/blanks', () => {
@@ -36,6 +36,36 @@ test('detectExecutables finds the game binary but not Chromium helpers', (t) => 
   fs.writeFileSync(path.join(dir, 'resources'), 'x', { mode: 0o644 });
 
   assert.deepEqual(detectExecutables(dir), ['GenesisClient']);
+});
+
+test('detectExecutables finds the .exe on windows', (t) => {
+  const dir = tempDir(t);
+  fs.writeFileSync(path.join(dir, 'GenesisClient.exe'), 'x');
+  fs.writeFileSync(path.join(dir, 'chrome_crashpad_handler.exe'), 'x');
+  fs.writeFileSync(path.join(dir, 'ffmpeg.dll'), 'x');
+
+  assert.deepEqual(detectExecutables(dir, 'windows'), ['GenesisClient.exe']);
+});
+
+test('resolveConfig picks the platform-specific depot and source', () => {
+  const config = resolveConfig({
+    STEAM_APP_ID: '4022530',
+    STEAM_DEPOT_ID_LINUX: '4022533',
+    STEAM_DEPOT_ID_WINDOWS: '4022537',
+    STEAM_PLATFORM: 'windows',
+  });
+
+  assert.equal(config.platform, 'windows');
+  assert.equal(config.depotId, '4022537');
+  assert.ok(config.sourceDir.endsWith(path.join('dist', 'win-unpacked')));
+});
+
+test('resolveConfig defaults to linux and falls back to STEAM_DEPOT_ID', () => {
+  const config = resolveConfig({ STEAM_APP_ID: '1', STEAM_DEPOT_ID: '2' });
+
+  assert.equal(config.platform, 'linux');
+  assert.equal(config.depotId, '2');
+  assert.ok(config.sourceDir.endsWith(path.join('dist', 'linux-unpacked')));
 });
 
 test('the VDF templates contain the expected placeholders', () => {

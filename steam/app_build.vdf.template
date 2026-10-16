@@ -1,4 +1,4 @@
-// SteamPipe app build script for GenesisClient (Linux).
+// SteamPipe app build script for GenesisClient.
 "appbuild"
 {
 	"appid"        "__APP_ID__"
