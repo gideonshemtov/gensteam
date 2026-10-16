@@ -233,6 +233,76 @@
             font-family: 'Courier New', monospace;
         }
 
+        .button-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 640px;
+        }
+
+        .button-edit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            background: #3c3c3c;
+            border-radius: 5px;
+            border: 1px solid #5a5a5a;
+        }
+
+        .button-edit-item .button-preview {
+            margin-top: 17px;
+            flex-shrink: 0;
+        }
+
+        .button-edit-fields {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .button-edit-field {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 11px;
+            color: #999999;
+        }
+
+        .button-edit-field .setting-input {
+            max-width: none;
+            height: 30px;
+        }
+
+        .button-edit-field.icon-field .setting-input {
+            width: 56px;
+        }
+
+        .button-edit-field.title-field .setting-input,
+        .button-edit-field.command-field .setting-input {
+            width: 150px;
+        }
+
+        .button-edit-field.color-field .setting-input {
+            width: 44px;
+            padding: 2px;
+        }
+
+        .button-remove {
+            margin-top: 17px;
+            flex-shrink: 0;
+        }
+
+        .button-editor-empty {
+            color: #888888;
+            font-size: 12px;
+            padding: 10px;
+            background: #3c3c3c;
+            border-radius: 5px;
+            border: 1px dashed #5a5a5a;
+        }
+
         .json-editor-container {
             display: none;
             height: 100%;
@@ -480,8 +550,9 @@
 
                         <div class="setting-item">
                             <label class="setting-label">Custom Buttons Configuration</label>
-                            <div class="setting-description">Configure your custom command buttons (edit in JSON mode for full customization)</div>
-                            <div class="button-list" id="buttonList"></div>
+                            <div class="setting-description">Add, edit, and remove the quick-action buttons shown in the game window. Changes are applied when you save.</div>
+                            <div class="button-editor" id="buttonList"></div>
+                            <button type="button" class="btn secondary" id="addButtonBtn" style="margin-top: 10px;">+ Add Button</button>
                         </div>
                     </div>
                 </div>

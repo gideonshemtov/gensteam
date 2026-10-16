@@ -62,6 +62,11 @@ class SettingsRenderer {
       this.importSettings();
     });
 
+    // Add custom button
+    document.getElementById('addButtonBtn').addEventListener('click', () => {
+      this.addCustomButton();
+    });
+
     // Setting inputs change detection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('setting-input')) {
@@ -151,33 +156,117 @@ class SettingsRenderer {
     const buttons = this.currentSettings.buttons?.customButtons || [];
 
     buttonList.textContent = '';
-    buttons.forEach((button) => {
+
+    if (buttons.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'button-editor-empty';
+      empty.textContent = 'No custom buttons yet. Click "Add Button" to create one.';
+      buttonList.appendChild(empty);
+      return;
+    }
+
+    buttons.forEach((button, index) => {
+      buttonList.appendChild(this.createButtonEditorRow(button, index));
+    });
+  }
+
+  createButtonEditorRow(button, index) {
+    const row = document.createElement('div');
+    row.className = 'button-edit-item';
+
+    const preview = document.createElement('div');
+    preview.className = 'button-preview';
+    const applyPreview = () => {
       const color = this.getSafeColor(button.color);
-
-      const buttonItem = document.createElement('div');
-      buttonItem.className = 'button-item';
-
-      const preview = document.createElement('div');
-      preview.className = 'button-preview';
       preview.style.background = color;
       preview.style.border = `1px solid ${color}`;
       preview.textContent = button.icon ?? '';
+    };
 
-      const info = document.createElement('div');
-      info.className = 'button-info';
+    const fields = document.createElement('div');
+    fields.className = 'button-edit-fields';
 
-      const title = document.createElement('div');
-      title.className = 'button-title';
-      title.textContent = button.title ?? '';
+    const addField = (name, labelText, value, type, onInput) => {
+      const label = document.createElement('label');
+      label.className = `button-edit-field ${name}-field`;
 
-      const command = document.createElement('div');
-      command.className = 'button-command';
-      command.textContent = button.command ?? '';
+      const caption = document.createElement('span');
+      caption.textContent = labelText;
 
-      info.append(title, command);
-      buttonItem.append(preview, info);
-      buttonList.appendChild(buttonItem);
+      const input = document.createElement('input');
+      input.type = type;
+      input.className = 'setting-input';
+      input.value = value ?? '';
+      input.addEventListener('input', () => {
+        onInput(input.value);
+        applyPreview();
+        this.markAsChanged();
+        if (this.currentSection !== 'json') {
+          this.updateJsonEditor();
+        }
+      });
+
+      label.append(caption, input);
+      return label;
+    };
+
+    // Keep a canonical (safe) hex value in the model for the color input.
+    if (button.color !== this.getSafeColor(button.color)) {
+      button.color = this.getSafeColor(button.color);
+    }
+
+    fields.append(
+      addField('icon', 'Icon', button.icon, 'text', (value) => { button.icon = value; }),
+      addField('title', 'Title', button.title, 'text', (value) => { button.title = value; }),
+      addField('command', 'Command', button.command, 'text', (value) => { button.command = value; }),
+      addField('color', 'Color', button.color, 'color', (value) => { button.color = value; }),
+    );
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'btn danger button-remove';
+    removeButton.textContent = 'Remove';
+    removeButton.addEventListener('click', () => this.removeCustomButton(index));
+
+    applyPreview();
+    row.append(preview, fields, removeButton);
+    return row;
+  }
+
+  addCustomButton() {
+    if (!this.currentSettings.buttons) {
+      this.currentSettings.buttons = {};
+    }
+    if (!Array.isArray(this.currentSettings.buttons.customButtons)) {
+      this.currentSettings.buttons.customButtons = [];
+    }
+
+    this.currentSettings.buttons.customButtons.push({
+      icon: '⭐',
+      title: 'New Button',
+      command: 'look',
+      color: '#4a90e2',
     });
+
+    this.markAsChanged();
+    this.populateButtonList();
+    if (this.currentSection !== 'json') {
+      this.updateJsonEditor();
+    }
+  }
+
+  removeCustomButton(index) {
+    const buttons = this.currentSettings.buttons?.customButtons;
+    if (!Array.isArray(buttons)) {
+      return;
+    }
+
+    buttons.splice(index, 1);
+    this.markAsChanged();
+    this.populateButtonList();
+    if (this.currentSection !== 'json') {
+      this.updateJsonEditor();
+    }
   }
 
   // Only accept well-formed hex colors; anything else falls back to a neutral grey.

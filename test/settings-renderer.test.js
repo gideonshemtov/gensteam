@@ -28,3 +28,10 @@ test('settings page ships a CSP that forbids inline scripts', () => {
   assert.equal(scriptSrc.includes("'unsafe-inline'"), false, 'script-src must not allow inline scripts');
   assert.equal(scriptSrc.includes("'unsafe-eval'"), false, 'script-src must not allow eval');
 });
+
+test('custom buttons can be configured from the UI', () => {
+  assert.ok(html.includes('id="addButtonBtn"'), 'settings.html is missing the Add Button control');
+  assert.equal(html.includes('edit in JSON mode'), false, 'button editing should not require JSON mode');
+  assert.ok(rendererSource.includes('addCustomButton'), 'renderer is missing addCustomButton()');
+  assert.ok(rendererSource.includes('removeCustomButton'), 'renderer is missing removeCustomButton()');
+});

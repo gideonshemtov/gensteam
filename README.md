@@ -152,10 +152,10 @@ The left sidebar contains customizable quick-action buttons for common commands.
 
 ### Customization
 
-1. Go to **View → Preferences** to open settings
-2. Modify button icons, colors, titles, and commands
-3. Add or remove buttons as needed
-4. Changes are saved automatically
+1. Go to **View → Preferences** → **Custom Buttons**
+2. Edit each button's icon, title, command, and color, or click **Remove** to delete it
+3. Click **+ Add Button** to add a new one
+4. Click **Save** to apply your changes
 
 ## Sound Triggers
 

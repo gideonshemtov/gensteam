@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Unit test suite using Node's built-in test runner (`pnpm test`)
+- Custom buttons can be added, edited, and removed from the Preferences UI
 
 ### Changed
 
