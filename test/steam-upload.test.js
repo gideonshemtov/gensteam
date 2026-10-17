@@ -47,6 +47,16 @@ test('detectExecutables finds the .exe on windows', (t) => {
   assert.deepEqual(detectExecutables(dir, 'windows'), ['GenesisClient.exe']);
 });
 
+test('detectExecutables finds the binary inside the .app on mac', (t) => {
+  const dir = tempDir(t);
+  const macosDir = path.join(dir, 'GenesisClient.app', 'Contents', 'MacOS');
+  fs.mkdirSync(macosDir, { recursive: true });
+  fs.writeFileSync(path.join(macosDir, 'GenesisClient'), 'x', { mode: 0o755 });
+  fs.writeFileSync(path.join(macosDir, 'GenesisClient Helper'), 'x', { mode: 0o755 });
+
+  assert.deepEqual(detectExecutables(dir, 'mac'), ['GenesisClient.app/Contents/MacOS/GenesisClient']);
+});
+
 test('resolveConfig picks the platform-specific depot and source', () => {
   const config = resolveConfig({
     STEAM_APP_ID: '4022530',
@@ -66,6 +76,18 @@ test('resolveConfig defaults to linux and falls back to STEAM_DEPOT_ID', () => {
   assert.equal(config.platform, 'linux');
   assert.equal(config.depotId, '2');
   assert.ok(config.sourceDir.endsWith(path.join('dist', 'linux-unpacked')));
+});
+
+test('resolveConfig supports the mac platform and depot', () => {
+  const config = resolveConfig({
+    STEAM_APP_ID: '4022530',
+    STEAM_DEPOT_ID_MAC: '4022532',
+    STEAM_PLATFORM: 'mac',
+  });
+
+  assert.equal(config.platform, 'mac');
+  assert.equal(config.depotId, '4022532');
+  assert.match(config.sourceDir, /dist[/\\]mac/);
 });
 
 test('the VDF templates contain the expected placeholders', () => {

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- macOS support for the Steam upload tooling (`pnpm run steam:release:mac` builds a universal app and uploads it via SteamPipe); `steam:upload` now accepts `--platform=<linux|windows|mac>` and detects the launch binary inside `GenesisClient.app`
+
 ## [1.0.17] - 2026-10-15
 
 ### Added

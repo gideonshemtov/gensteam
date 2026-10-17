@@ -12,10 +12,13 @@
     "dist:win": "electron-builder -w",
     "dist:win:dir": "electron-builder --win --dir",
     "dist:mac": "electron-builder -m",
+    "dist:mac:dir": "electron-builder --mac --dir --universal",
     "dist:linux": "electron-builder -l",
     "dist:linux:dir": "electron-builder --linux --dir",
     "steam:prepare": "node steam/upload.js --prepare",
     "steam:upload": "node steam/upload.js",
+    "steam:upload:mac": "node steam/upload.js --platform=mac",
+    "steam:release:mac": "pnpm run dist:mac:dir && pnpm run steam:upload:mac",
     "steam:upload:docker": "bash steam/docker-upload.sh"
   },
   "build": {

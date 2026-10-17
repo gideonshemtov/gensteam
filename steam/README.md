@@ -1,13 +1,14 @@
-# Publishing to Steam (Linux)
+# Publishing to Steam
 
-This folder contains the SteamPipe upload setup for the Linux build. It uploads
-the **unpacked** electron-builder output (not the AppImage).
+This folder contains the SteamPipe upload setup for the Linux, Windows, and
+macOS builds. It uploads the **unpacked** electron-builder output (not the
+AppImage/DMG/zip).
 
 ## One-time setup
 
-1. In [Steamworks](https://partner.steamgames.com/) create your **App** and a
-   **Depot** for Linux, and note the **App ID** and **Depot ID**.
-2. Set the depot's OS to **Linux / 64-bit**.
+1. In [Steamworks](https://partner.steamgames.com/) create your **App** and one
+   **Depot per platform**, and note the **App ID** and **Depot IDs**.
+2. Set each depot's OS (**Linux / 64-bit**, **Windows**, or **macOS**).
 3. Install [SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD) and make
    sure `steamcmd` is on your `PATH`.
 4. Create your `.env` file:
@@ -82,27 +83,57 @@ pnpm run steam:upload
 The launch executable is `GenesisClient.exe`; set the launch option's
 **Operating System** to Windows and leave arguments empty.
 
-Note: each platform needs its own **depot** in Steamworks (OS = Windows), and
+### macOS
+
+Build on a Mac (universal binaries need both architectures present, so this must
+run on macOS). No Docker needed; use native `steamcmd`.
+
+```bash
+pnpm run steam:release:mac     # == dist:mac:dir (universal) + steam:upload:mac
+```
+
+Or run the two steps yourself:
+
+```bash
+pnpm run dist:mac:dir          # -> dist/mac-universal/GenesisClient.app
+pnpm run steam:upload:mac      # == node steam/upload.js --platform=mac
+```
+
+`.env` for the macOS depot:
+
+```
+STEAM_PLATFORM=mac
+STEAM_DEPOT_ID_MAC=<macOS depot id>
+```
+
+The launch executable is `GenesisClient.app/Contents/MacOS/GenesisClient`. In
+Steamworks set the launch option's **Operating System** to **macOS** and leave
+arguments empty. Steamworks also accepts the bundle itself
+(`GenesisClient.app`) as the executable.
+
+Note: each platform needs its own **depot** in Steamworks, and
 `STEAM_DEPOT_ID` acts as a fallback for `STEAM_DEPOT_ID_<PLATFORM>`.
 
 `steam:upload` will:
 
 - read `.env`,
-- copy `dist/linux-unpacked/` into `steam/content/`,
+- copy the platform build (e.g. `dist/linux-unpacked/`, `dist/mac-universal/`)
+  into `steam/content/`,
 - render `steam/build/app_build_<APPID>.vdf` and
   `steam/build/depot_build_<DEPOTID>.vdf` from the templates,
-- print the **launch executable** to use (e.g. `GenesisClient`),
+- print the **launch executable** to use (e.g. `GenesisClient`,
+  `GenesisClient.exe`, or `GenesisClient.app/Contents/MacOS/GenesisClient`),
 - run `steamcmd +login ... +run_app_build ... +quit`.
 
 ## Configure launch options (Steamworks)
 
-App → **Installation → General → Launch Options** → add:
+App → **Installation → General → Launch Options** → add one per platform:
 
 | Field | Value |
 |-------|-------|
-| Executable | the name printed by `steam:upload` (the binary in the content root) |
-| Arguments | `--no-sandbox` (see below) |
-| Operating System | Linux |
+| Executable | the name printed by `steam:upload` (the binary/bundle in the content root) |
+| Arguments | `--no-sandbox` on Linux (see below); empty on Windows/macOS |
+| Operating System | Linux, Windows, or macOS |
 
 ## Linux / Electron notes
 
@@ -114,6 +145,17 @@ App → **Installation → General → Launch Options** → add:
   upload and run.
 - **Steam Linux Runtime:** if the build misbehaves on older distributions, set
   the app to use the *Steam Linux Runtime (sniper)* compatibility tool.
+
+## macOS notes
+
+- **Content root:** the depot must contain the `GenesisClient.app` bundle, so the
+  content root is the folder that holds it (`dist/mac-universal/`), **not** the
+  `.app` itself.
+- **Universal builds:** `dist:mac:dir` builds `x64 + arm64`. Universal builds
+  cannot be produced by cross-compiling, so run this on macOS.
+- **Code signing / notarization:** not required just to upload and run from
+  Steam. If you sign for direct distribution, keep signing enabled for the Steam
+  build too so Gatekeeper is happy on download.
 
 ## Recommended first run
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // steam/upload.js
-// Prepare the Linux depot (from the unpacked electron-builder output) and
-// upload it to Steam with SteamPipe. Configuration is read from .env.
+// Prepare a Steam depot from the unpacked electron-builder output (Linux,
+// Windows, or macOS) and upload it to Steam with SteamPipe. Configuration is
+// read from .env.
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -52,14 +53,58 @@ const NON_GAME_EXECUTABLES = new Set([
   'chrome_crashpad_handler.exe',
 ]);
 
-// Default electron-builder output directory per platform.
+// Default electron-builder output directory per platform. The first existing
+// candidate wins; the macOS directory depends on the built architecture.
 const PLATFORM_SOURCE = {
-  linux: 'dist/linux-unpacked',
-  windows: 'dist/win-unpacked',
+  linux: ['dist/linux-unpacked'],
+  windows: ['dist/win-unpacked'],
+  mac: ['dist/mac-universal', 'dist/mac-arm64', 'dist/mac'],
 };
+
+// npm script that produces the unpacked build for each platform.
+const PLATFORM_BUILD_SCRIPT = {
+  linux: 'dist:linux:dir',
+  windows: 'dist:win:dir',
+  mac: 'dist:mac:dir',
+};
+
+function isExecutable(filePath) {
+  try {
+    return (fs.statSync(filePath).mode & 0o111) !== 0;
+  } catch {
+    return false;
+  }
+}
+
+// macOS builds ship a single .app bundle; Steam launches the binary inside it.
+// Returns paths relative to the content root, e.g.
+// "GenesisClient.app/Contents/MacOS/GenesisClient".
+function detectMacExecutables(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name.endsWith('.app'))
+    .map((entry) => {
+      const macosDir = path.join(dir, entry.name, 'Contents', 'MacOS');
+      if (!fs.existsSync(macosDir)) return null;
+
+      const binaries = fs.readdirSync(macosDir, { withFileTypes: true })
+        .filter((child) => child.isFile())
+        .map((child) => child.name)
+        .filter((name) => isExecutable(path.join(macosDir, name)));
+      if (!binaries.length) return null;
+
+      const expected = entry.name.replace(/\.app$/, '');
+      const binary = binaries.includes(expected) ? expected : binaries[0];
+      return path.posix.join(entry.name, 'Contents', 'MacOS', binary);
+    })
+    .filter(Boolean);
+}
 
 // The game binary at the root of the build, excluding Chromium helpers/libraries.
 function detectExecutables(dir, platform = 'linux') {
+  if (platform === 'mac') {
+    return detectMacExecutables(dir);
+  }
+
   const files = fs.readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => entry.name)
@@ -71,13 +116,16 @@ function detectExecutables(dir, platform = 'linux') {
 
   return files
     .filter((name) => !name.includes('.'))
-    .filter((name) => {
-      try {
-        return (fs.statSync(path.join(dir, name)).mode & 0o111) !== 0;
-      } catch {
-        return false;
-      }
-    });
+    .filter((name) => isExecutable(path.join(dir, name)));
+}
+
+// Resolve the build directory for a platform, honoring STEAM_CONTENT_SOURCE.
+function resolveSourceDir(env, platform) {
+  if (env.STEAM_CONTENT_SOURCE) {
+    return path.resolve(REPO_ROOT, env.STEAM_CONTENT_SOURCE);
+  }
+  const candidates = PLATFORM_SOURCE[platform].map((dir) => path.resolve(REPO_ROOT, dir));
+  return candidates.find((dir) => fs.existsSync(dir)) || candidates[0];
 }
 
 // Resolve the platform-specific config from .env.
@@ -99,7 +147,7 @@ function resolveConfig(env) {
     platform,
     appId,
     depotId,
-    sourceDir: path.resolve(REPO_ROOT, env.STEAM_CONTENT_SOURCE || PLATFORM_SOURCE[platform]),
+    sourceDir: resolveSourceDir(env, platform),
   };
 }
 
@@ -116,10 +164,17 @@ function fail(message) {
 
 function main() {
   const env = loadEnv();
+
+  // Allow `node steam/upload.js --platform=mac` to override STEAM_PLATFORM.
+  const platformFlag = process.argv.find((arg) => arg.startsWith('--platform='));
+  if (platformFlag) {
+    env.STEAM_PLATFORM = platformFlag.slice('--platform='.length);
+  }
+
   const { platform, appId, depotId, sourceDir } = resolveConfig(env);
 
   if (!fs.existsSync(sourceDir) || fs.readdirSync(sourceDir).length === 0) {
-    fail(`${platform} build not found at ${sourceDir}.\nRun "pnpm run dist:${platform === 'windows' ? 'win' : 'linux'}:dir" first.`);
+    fail(`${platform} build not found at ${sourceDir}.\nRun "pnpm run ${PLATFORM_BUILD_SCRIPT[platform]}" first.`);
   }
 
   console.log(`Platform       : ${platform}`);

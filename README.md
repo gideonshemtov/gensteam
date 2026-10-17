@@ -49,7 +49,8 @@ pnpm run dist:win
 
 #### macOS
 ```bash
-pnpm run dist:mac
+pnpm run dist:mac          # DMG
+pnpm run dist:mac:dir      # unpacked universal build (dist/mac-universal/)
 ```
 
 #### Linux
@@ -62,16 +63,23 @@ pnpm run dist:linux
 pnpm run pack
 ```
 
-### Publishing to Steam (Linux)
+### Publishing to Steam (Linux, Windows, macOS)
 
-Builds the unpacked Linux app and uploads it to Steam via SteamPipe. Put your
-App ID and Depot ID in a `.env` file (see `.env.example`) and follow
+Builds the unpacked app and uploads it to Steam via SteamPipe. Put your App ID
+and depot IDs in a `.env` file (see `.env.example`) and follow
 [`steam/README.md`](steam/README.md):
 
 ```bash
+# Linux
 pnpm run dist:linux:dir   # build dist/linux-unpacked/
 pnpm run steam:upload     # copy + upload to Steam
+
+# macOS (run on a Mac; builds a universal app)
+pnpm run steam:release:mac   # == dist:mac:dir + steam:upload:mac
 ```
+
+Windows uses the same flow with `pnpm run dist:win:dir` and a `STEAM_PLATFORM=windows`
+`.env` setting; see [`steam/README.md`](steam/README.md).
 
 ## Testing
 
