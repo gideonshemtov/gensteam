@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.18] - 2026-10-17
+
 ### Added
 
 - macOS support for the Steam upload tooling (`pnpm run steam:release:mac` builds a universal app and uploads it via SteamPipe); `steam:upload` now accepts `--platform=<linux|windows|mac>` and prints the `.app` bundle to use as the launch option (pointing Steam at the inner binary makes it run under Rosetta on Apple Silicon)
@@ -17,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Steam uploads no longer re-prompt for the Steam password / Steam Guard on every run: steamcmd is now run with a private `HOME` (`~/.genesis-steamcmd`) so its cached login is not clobbered by the Steam client
 - Depot content now preserves symlinks verbatim; macOS `.app` framework symlinks (e.g. `Electron Framework.framework/Versions/Current`) were being uploaded as absolute paths pointing at the build machine, which made the installed app fail to launch
 - Closing the game window now quits the app on macOS too, so Steam stops reporting the game as running
-- The game window is brought to the front when launched from Steam instead of opening behind the Steam window
+- The game window is brought to the front when launched from Steam instead of opening behind the Steam window; activation is retried briefly so Steam cannot re-take focus after launch
+- On macOS the app is forced to a regular foreground app (Dock icon and its own menu bar) so launching from Steam shows the client's menus rather than Steam's
 
 ## [1.0.17] - 2026-10-15
 

@@ -22,8 +22,33 @@ let findBarManager;
 let timerIPC;
 let windowManager;
 
+// Steam can activate its own window just after handing the launch off to the
+// game, which leaves the game behind the Steam client. On macOS that also means
+// the menu bar keeps showing Steam's menus instead of ours, because the
+// application menu is global and belongs to the active app. Re-assert
+// activation for a short while so the game wins that race.
+const MAC_ACTIVATION_RETRY_DELAYS = [250, 750, 1500];
+
+function bringToFront(win) {
+  if (!win || win.isDestroyed()) {
+    return;
+  }
+  win.show();
+  win.focus();
+  if (process.platform === 'darwin') {
+    win.moveTop();
+    app.focus({ steal: true });
+  }
+}
+
 app.whenReady().then(() => {
   registerSoundProtocol();
+
+  if (process.platform === 'darwin') {
+    // Make sure the app is a regular foreground app (Dock icon + its own menu
+    // bar) even when Steam started it as a child process.
+    app.setActivationPolicy('regular');
+  }
 
   ipcMain.handle('get-available-sounds', () => listAvailableSounds());
 
@@ -41,17 +66,27 @@ app.whenReady().then(() => {
   const win = createWindow();
 
   // Bring the game window to the front. When launched from Steam the app can
-  // open behind the Steam window, so activate and steal focus once it is ready.
+  // open behind the Steam window, so activate and steal focus once it is ready,
+  // then retry briefly in case Steam activates itself again afterwards.
   win.once('ready-to-show', () => {
-    win.show();
-    win.focus();
+    bringToFront(win);
+
     if (process.platform === 'darwin') {
-      app.focus({ steal: true });
+      for (const delay of MAC_ACTIVATION_RETRY_DELAYS) {
+        setTimeout(() => {
+          if (!win.isDestroyed() && !win.isFocused()) {
+            bringToFront(win);
+          }
+        }, delay);
+      }
     }
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    const existing = BrowserWindow.getAllWindows()[0];
+    if (existing) {
+      bringToFront(existing);
+    } else {
       createWindow();
     }
   });
