@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Depot content now preserves symlinks verbatim; macOS `.app` framework symlinks (e.g. `Electron Framework.framework/Versions/Current`) were being uploaded as absolute paths pointing at the build machine, which made the installed app fail to launch
+- Closing the game window now quits the app on macOS too, so Steam stops reporting the game as running
+- The game window is brought to the front when launched from Steam instead of opening behind the Steam window
 
 ## [1.0.17] - 2026-10-15
 

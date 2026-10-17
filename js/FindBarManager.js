@@ -42,7 +42,7 @@ class FindBarManager {
     
     // Reposition find bar when main window moves or resizes
     const updateFindBarPosition = () => {
-      if (this.findBar && !this.findBar.isDestroyed()) {
+      if (this.findBar && !this.findBar.isDestroyed() && this.mainWindow && !this.mainWindow.isDestroyed()) {
         const bounds = this.mainWindow.getBounds();
         this.findBar.setBounds({
           x: bounds.x + bounds.width - 420,

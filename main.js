@@ -38,7 +38,17 @@ app.whenReady().then(() => {
 
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
 
-  createWindow();
+  const win = createWindow();
+
+  // Bring the game window to the front. When launched from Steam the app can
+  // open behind the Steam window, so activate and steal focus once it is ready.
+  win.once('ready-to-show', () => {
+    win.show();
+    win.focus();
+    if (process.platform === 'darwin') {
+      app.focus({ steal: true });
+    }
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -62,10 +72,13 @@ function createWindow() {
       settingsWindow.close();
     }
   });
+
+  return win;
 }
 
+// This is a game client launched from Steam: closing the window ends the
+// session, so Steam stops reporting the game as running (the macOS convention
+// of keeping the app alive with no windows is confusing here).
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  app.quit();
 });
