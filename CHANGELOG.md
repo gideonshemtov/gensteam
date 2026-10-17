@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.19] - 2026-10-17
+
+### Fixed
+
+- The game reliably takes over the macOS menu bar when launched from Steam: alongside the focus retries it now asks LaunchServices to activate the running app and re-asserts activation once the page has loaded
+- Only one instance of the client can run; launching it again focuses the existing window
+
+### Added
+
+- Startup diagnostics are appended to `startup.log` in the app's user data directory (launch parent, menu labels, and focus state after each activation attempt)
+
 ## [1.0.18] - 2026-10-17
 
 ### Added
