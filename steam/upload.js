@@ -143,7 +143,11 @@ function resolveConfig(env) {
 function copyDir(src, dest) {
   fs.rmSync(dest, { recursive: true, force: true });
   fs.mkdirSync(dest, { recursive: true });
-  fs.cpSync(src, dest, { recursive: true });
+  // verbatimSymlinks keeps symlinks verbatim. Without it Node rewrites them to
+  // the resolved absolute path, so a macOS .app's relative framework symlinks
+  // (e.g. .../Electron Framework.framework/Versions/Current -> A) end up
+  // pointing at the build machine and the app fails on every other machine.
+  fs.cpSync(src, dest, { recursive: true, verbatimSymlinks: true });
 }
 
 function fail(message) {
@@ -230,7 +234,7 @@ function main() {
   process.exit(result.status || 0);
 }
 
-module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables, resolveConfig };
+module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables, resolveConfig, copyDir };
 
 if (require.main === module) {
   main();

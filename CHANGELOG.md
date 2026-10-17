@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - macOS support for the Steam upload tooling (`pnpm run steam:release:mac` builds a universal app and uploads it via SteamPipe); `steam:upload` now accepts `--platform=<linux|windows|mac>` and prints the `.app` bundle to use as the launch option (pointing Steam at the inner binary makes it run under Rosetta on Apple Silicon)
 
+### Fixed
+
+- Depot content now preserves symlinks verbatim; macOS `.app` framework symlinks (e.g. `Electron Framework.framework/Versions/Current`) were being uploaded as absolute paths pointing at the build machine, which made the installed app fail to launch
+
 ## [1.0.17] - 2026-10-15
 
 ### Added

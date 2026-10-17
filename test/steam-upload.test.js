@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { parseEnv, renderTemplate, detectExecutables, resolveConfig } = require('../steam/upload');
+const { parseEnv, renderTemplate, detectExecutables, resolveConfig, copyDir } = require('../steam/upload');
 const { tempDir } = require('./helpers/test-utils');
 
 test('parseEnv reads key/value pairs and ignores comments/blanks', () => {
@@ -54,6 +54,21 @@ test('detectExecutables returns the .app bundle on mac (not the inner binary)', 
   fs.writeFileSync(path.join(macosDir, 'GenesisClient'), 'x', { mode: 0o755 });
 
   assert.deepEqual(detectExecutables(dir, 'mac'), ['GenesisClient.app']);
+});
+
+test('copyDir preserves relative symlinks in .app frameworks', (t) => {
+  const src = tempDir(t);
+  const dest = path.join(tempDir(t), 'content');
+  // Mimic GenesisClient.app/.../Electron Framework.framework/Versions/Current -> A
+  const versions = path.join(src, 'X.framework', 'Versions');
+  fs.mkdirSync(path.join(versions, 'A', 'Resources'), { recursive: true });
+  fs.writeFileSync(path.join(versions, 'A', 'Resources', 'icudtl.dat'), 'x');
+  fs.symlinkSync('A', path.join(versions, 'Current'));
+
+  copyDir(src, dest);
+
+  assert.equal(fs.readlinkSync(path.join(dest, 'X.framework', 'Versions', 'Current')), 'A');
+  assert.ok(fs.existsSync(path.join(dest, 'X.framework', 'Versions', 'Current', 'Resources', 'icudtl.dat')));
 });
 
 test('resolveConfig picks the platform-specific depot and source', () => {
