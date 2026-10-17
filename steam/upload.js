@@ -166,6 +166,28 @@ function fail(message) {
   process.exit(1);
 }
 
+// Log in to Steam (and quit) without uploading, to seed/verify the cached login.
+function login(env) {
+  const steamcmd = env.STEAMCMD || 'steamcmd';
+  const steamcmdHome = resolveSteamcmdHome(env);
+  fs.mkdirSync(steamcmdHome, { recursive: true });
+
+  const loginArgs = env.STEAM_USERNAME ? ['+login', env.STEAM_USERNAME] : ['+login'];
+  const args = [...loginArgs, '+quit'];
+
+  console.log(`SteamCMD HOME  : ${steamcmdHome}`);
+  console.log(`Running: ${steamcmd} ${args.join(' ')}\n`);
+  const result = spawnSync(steamcmd, args, {
+    stdio: 'inherit',
+    env: { ...process.env, HOME: steamcmdHome },
+  });
+
+  if (result.error) {
+    fail(`Could not run "${steamcmd}". Install SteamCMD or set STEAMCMD in .env.\n${result.error.message}`);
+  }
+  process.exit(result.status || 0);
+}
+
 function main() {
   const env = loadEnv();
 
@@ -173,6 +195,12 @@ function main() {
   const platformFlag = process.argv.find((arg) => arg.startsWith('--platform='));
   if (platformFlag) {
     env.STEAM_PLATFORM = platformFlag.slice('--platform='.length);
+  }
+
+  // Login-only mode: seed/verify the cached login without preparing or uploading.
+  if (process.argv.includes('--login')) {
+    login(env);
+    return;
   }
 
   const { platform, appId, depotId, sourceDir } = resolveConfig(env);

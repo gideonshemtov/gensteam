@@ -16,6 +16,7 @@
     "dist:linux": "electron-builder -l",
     "dist:linux:dir": "electron-builder --linux --dir",
     "steam:prepare": "node steam/upload.js --prepare",
+    "steam:login": "node steam/upload.js --login",
     "steam:upload": "node steam/upload.js",
     "steam:upload:mac": "node steam/upload.js --platform=mac",
     "steam:release:mac": "pnpm run dist:mac:dir && pnpm run steam:upload:mac",

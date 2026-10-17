@@ -187,6 +187,12 @@ This matters on macOS in particular: when steamcmd shares the Steam client's
 directory the client overwrites the cache, so the password and Steam Guard are
 requested on every run.
 
+To seed/verify the cache without building or uploading anything:
+
+```bash
+pnpm run steam:login   # first run prompts; later runs are silent
+```
+
 ## Generated / ignored files
 
 `steam/content/`, `steam/build/`, `steam/output/`, and `.env` are git-ignored.

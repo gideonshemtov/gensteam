@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - macOS support for the Steam upload tooling (`pnpm run steam:release:mac` builds a universal app and uploads it via SteamPipe); `steam:upload` now accepts `--platform=<linux|windows|mac>` and prints the `.app` bundle to use as the launch option (pointing Steam at the inner binary makes it run under Rosetta on Apple Silicon)
+- `pnpm run steam:login` logs in to Steam (seeding/verifying the cached login) without building or uploading
 
 ### Fixed
 
