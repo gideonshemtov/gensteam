@@ -3,6 +3,12 @@ const { Menu, dialog, app } = require('electron');
 const path = require('path');
 const { setZoom, stepZoom, ZOOM_STEP } = require('./ZoomController');
 
+// The packaged bundle is "GenesisClient" (see package.json "build.productName"),
+// but app.getName() returns the lower-case package name ("genesis-electron")
+// because there is no top-level productName, and that would become the macOS
+// application menu title. Use the display name explicitly for the menus.
+const DISPLAY_NAME = 'GenesisClient';
+
 class MenuBuilder {
   constructor(settingsManager, settingsWindow, onZoomChanged) {
     this.settingsManager = settingsManager;
@@ -226,10 +232,10 @@ class MenuBuilder {
     // macOS specific menu adjustments
     if (process.platform === 'darwin') {
       template.unshift({
-        label: app.getName(),
+        label: DISPLAY_NAME,
         submenu: [
           {
-            label: 'About ' + app.getName(),
+            label: 'About ' + DISPLAY_NAME,
             role: 'about'
           },
           { type: 'separator' },
@@ -246,7 +252,7 @@ class MenuBuilder {
           },
           { type: 'separator' },
           {
-            label: 'Hide ' + app.getName(),
+            label: 'Hide ' + DISPLAY_NAME,
             accelerator: 'Command+H',
             role: 'hide'
           },

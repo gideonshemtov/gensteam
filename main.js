@@ -144,27 +144,33 @@ if (!gotSingleInstanceLock) {
     const win = createWindow();
 
     // Bring the game window to the front. When launched from Steam the app can
-    // open behind the Steam window, so activate and steal focus once it is ready,
-    // then retry briefly in case Steam activates itself again afterwards.
+    // open behind the Steam window, and "ready-to-show" can be many seconds away
+    // while the game page loads (until the app is active macOS keeps showing
+    // Steam's menu bar), so activate immediately and then retry briefly in case
+    // Steam activates itself again afterwards.
+    logStartup(
+      `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
+    );
+
+    activateApp(win);
+
+    if (process.platform === 'darwin') {
+      for (const delay of MAC_ACTIVATION_RETRY_DELAYS) {
+        setTimeout(() => {
+          if (win.isDestroyed()) {
+            return;
+          }
+          if (!win.isFocused()) {
+            activateApp(win);
+          }
+          logStartup(`retry ${delay}ms focused=${win.isFocused()}`);
+        }, delay);
+      }
+    }
+
     win.once('ready-to-show', () => {
-      logStartup(
-        `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
-      );
-
-      activateApp(win);
-
-      if (process.platform === 'darwin') {
-        for (const delay of MAC_ACTIVATION_RETRY_DELAYS) {
-          setTimeout(() => {
-            if (win.isDestroyed()) {
-              return;
-            }
-            if (!win.isFocused()) {
-              activateApp(win);
-            }
-            logStartup(`retry ${delay}ms focused=${win.isFocused()}`);
-          }, delay);
-        }
+      if (!win.isDestroyed() && !win.isFocused()) {
+        activateApp(win);
       }
     });
 

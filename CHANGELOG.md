@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.20] - 2026-10-17
+
+### Fixed
+
+- The game window now takes over as soon as it launches instead of waiting for the page to finish painting, which could leave the Steam window (and its menu bar) in front for several seconds
+- The macOS application menu is labelled "GenesisClient" instead of the internal package name "genesis-electron"
+
 ## [1.0.19] - 2026-10-17
 
 ### Fixed
