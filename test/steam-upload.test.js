@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { parseEnv, renderTemplate, detectExecutables, resolveConfig, copyDir } = require('../steam/upload');
+const { parseEnv, renderTemplate, detectExecutables, resolveConfig, resolveSteamcmdHome, copyDir } = require('../steam/upload');
 const { tempDir } = require('./helpers/test-utils');
 
 test('parseEnv reads key/value pairs and ignores comments/blanks', () => {
@@ -90,6 +90,14 @@ test('resolveConfig defaults to linux and falls back to STEAM_DEPOT_ID', () => {
   assert.equal(config.platform, 'linux');
   assert.equal(config.depotId, '2');
   assert.ok(config.sourceDir.endsWith(path.join('dist', 'linux-unpacked')));
+});
+
+test('resolveSteamcmdHome uses a private HOME by default and honors STEAMCMD_HOME', () => {
+  assert.ok(resolveSteamcmdHome({}).endsWith('.genesis-steamcmd'));
+  assert.ok(
+    resolveSteamcmdHome({ STEAMCMD_HOME: path.join('steam', '.steamhome') })
+      .endsWith(path.join('steam', '.steamhome')),
+  );
 });
 
 test('resolveConfig supports the mac platform and depot', () => {

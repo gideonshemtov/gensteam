@@ -4,6 +4,7 @@
 // Windows, or macOS) and upload it to Steam with SteamPipe. Configuration is
 // read from .env.
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -106,6 +107,16 @@ function detectExecutables(dir, platform = 'linux') {
   return files
     .filter((name) => !name.includes('.'))
     .filter((name) => isExecutable(path.join(dir, name)));
+}
+
+// steamcmd caches the login (sentry + config.vdf) under
+// $HOME/Library/Application Support/Steam on macOS (and $HOME/.steam on Linux).
+// When that is the Steam client's directory the running client clobbers the
+// cache, so the password / Steam Guard are requested on every upload. Run
+// steamcmd with its own HOME so the cache persists. Override with STEAMCMD_HOME.
+function resolveSteamcmdHome(env) {
+  const configured = (env.STEAMCMD_HOME || '').trim();
+  return configured ? path.resolve(REPO_ROOT, configured) : path.join(os.homedir(), '.genesis-steamcmd');
 }
 
 // Resolve the build directory for a platform, honoring STEAM_CONTENT_SOURCE.
@@ -221,12 +232,19 @@ function main() {
   }
 
   const steamcmd = env.STEAMCMD || 'steamcmd';
-  // steamcmd prompts for the password / Steam Guard code when not cached.
+  // steamcmd prompts for the password / Steam Guard code the first time; with a
+  // stable, private HOME the login is cached for later runs.
   const loginArgs = env.STEAM_USERNAME ? ['+login', env.STEAM_USERNAME] : ['+login'];
   const args = [...loginArgs, '+run_app_build', appBuildPath, '+quit'];
 
+  const steamcmdHome = resolveSteamcmdHome(env);
+  fs.mkdirSync(steamcmdHome, { recursive: true });
+  console.log(`SteamCMD HOME  : ${steamcmdHome}`);
   console.log(`Running: ${steamcmd} ${args.join(' ')}\n`);
-  const result = spawnSync(steamcmd, args, { stdio: 'inherit' });
+  const result = spawnSync(steamcmd, args, {
+    stdio: 'inherit',
+    env: { ...process.env, HOME: steamcmdHome },
+  });
 
   if (result.error) {
     fail(`Could not run "${steamcmd}". Install SteamCMD or set STEAMCMD in .env.\n${result.error.message}`);
@@ -234,7 +252,7 @@ function main() {
   process.exit(result.status || 0);
 }
 
-module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables, resolveConfig, copyDir };
+module.exports = { parseEnv, loadEnv, renderTemplate, detectExecutables, resolveConfig, resolveSteamcmdHome, copyDir };
 
 if (require.main === module) {
   main();

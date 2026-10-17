@@ -175,6 +175,18 @@ Steamworks → your app → **SteamPipe → Builds**, select the new build and
 Betas) to test. When you're happy, set that build live on the **default**
 branch (or upload again with `STEAM_SETLIVE=beta`).
 
+## Cached login (avoid re-entering the password)
+
+`steam:upload` runs steamcmd with its own private `HOME` (`~/.genesis-steamcmd`
+by default, override with `STEAMCMD_HOME` in `.env`) so its cached login lives
+separately from the Steam client's config. The **first** upload prompts for your
+password and Steam Guard code; every upload after that reuses the cached login
+and runs without prompting.
+
+This matters on macOS in particular: when steamcmd shares the Steam client's
+directory the client overwrites the cache, so the password and Steam Guard are
+requested on every run.
+
 ## Generated / ignored files
 
 `steam/content/`, `steam/build/`, `steam/output/`, and `.env` are git-ignored.
