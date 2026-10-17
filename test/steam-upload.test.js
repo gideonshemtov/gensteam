@@ -47,14 +47,13 @@ test('detectExecutables finds the .exe on windows', (t) => {
   assert.deepEqual(detectExecutables(dir, 'windows'), ['GenesisClient.exe']);
 });
 
-test('detectExecutables finds the binary inside the .app on mac', (t) => {
+test('detectExecutables returns the .app bundle on mac (not the inner binary)', (t) => {
   const dir = tempDir(t);
   const macosDir = path.join(dir, 'GenesisClient.app', 'Contents', 'MacOS');
   fs.mkdirSync(macosDir, { recursive: true });
   fs.writeFileSync(path.join(macosDir, 'GenesisClient'), 'x', { mode: 0o755 });
-  fs.writeFileSync(path.join(macosDir, 'GenesisClient Helper'), 'x', { mode: 0o755 });
 
-  assert.deepEqual(detectExecutables(dir, 'mac'), ['GenesisClient.app/Contents/MacOS/GenesisClient']);
+  assert.deepEqual(detectExecutables(dir, 'mac'), ['GenesisClient.app']);
 });
 
 test('resolveConfig picks the platform-specific depot and source', () => {

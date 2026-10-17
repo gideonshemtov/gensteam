@@ -106,10 +106,15 @@ STEAM_PLATFORM=mac
 STEAM_DEPOT_ID_MAC=<macOS depot id>
 ```
 
-The launch executable is `GenesisClient.app/Contents/MacOS/GenesisClient`. In
+The launch option **Executable** is `GenesisClient.app` (the bundle itself). In
 Steamworks set the launch option's **Operating System** to **macOS** and leave
-arguments empty. Steamworks also accepts the bundle itself
-(`GenesisClient.app`) as the executable.
+arguments empty.
+
+> **Important:** point the launch option at the `.app` **bundle**, not the inner
+> binary (`GenesisClient.app/Contents/MacOS/GenesisClient`). Targeting the inner
+> binary makes Steam launch it in its **x86_64 / Rosetta** context on Apple
+> Silicon, which crashes Electron apps (the window flashes and closes). Launching
+> the bundle lets macOS pick the native arm64 slice.
 
 Note: each platform needs its own **depot** in Steamworks, and
 `STEAM_DEPOT_ID` acts as a fallback for `STEAM_DEPOT_ID_<PLATFORM>`.
@@ -121,8 +126,8 @@ Note: each platform needs its own **depot** in Steamworks, and
   into `steam/content/`,
 - render `steam/build/app_build_<APPID>.vdf` and
   `steam/build/depot_build_<DEPOTID>.vdf` from the templates,
-- print the **launch executable** to use (e.g. `GenesisClient`,
-  `GenesisClient.exe`, or `GenesisClient.app/Contents/MacOS/GenesisClient`),
+- print the **launch option** to use (e.g. `GenesisClient`,
+  `GenesisClient.exe`, or `GenesisClient.app`),
 - run `steamcmd +login ... +run_app_build ... +quit`.
 
 ## Configure launch options (Steamworks)
@@ -148,6 +153,10 @@ App → **Installation → General → Launch Options** → add one per platform
 
 ## macOS notes
 
+- **Launch option:** set the Executable to the **`GenesisClient.app` bundle**,
+  not the inner binary inside it. Pointing at
+  `GenesisClient.app/Contents/MacOS/GenesisClient` makes Steam run the app under
+  **Rosetta (x86_64)** on Apple Silicon, which crashes Electron renderers.
 - **Content root:** the depot must contain the `GenesisClient.app` bundle, so the
   content root is the folder that holds it (`dist/mac-universal/`), **not** the
   `.app` itself.

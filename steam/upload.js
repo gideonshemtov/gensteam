@@ -76,27 +76,16 @@ function isExecutable(filePath) {
   }
 }
 
-// macOS builds ship a single .app bundle; Steam launches the binary inside it.
-// Returns paths relative to the content root, e.g.
-// "GenesisClient.app/Contents/MacOS/GenesisClient".
+// macOS builds ship a single .app bundle. Steam must be pointed at the bundle
+// itself in the launch option: pointing at the inner binary
+// (GenesisClient.app/Contents/MacOS/GenesisClient) makes Steam launch it in its
+// x86_64/Rosetta context on Apple Silicon, which crashes Electron apps.
+// Returns the bundle name relative to the content root, e.g. "GenesisClient.app".
 function detectMacExecutables(dir) {
   return fs.readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name.endsWith('.app'))
-    .map((entry) => {
-      const macosDir = path.join(dir, entry.name, 'Contents', 'MacOS');
-      if (!fs.existsSync(macosDir)) return null;
-
-      const binaries = fs.readdirSync(macosDir, { withFileTypes: true })
-        .filter((child) => child.isFile())
-        .map((child) => child.name)
-        .filter((name) => isExecutable(path.join(macosDir, name)));
-      if (!binaries.length) return null;
-
-      const expected = entry.name.replace(/\.app$/, '');
-      const binary = binaries.includes(expected) ? expected : binaries[0];
-      return path.posix.join(entry.name, 'Contents', 'MacOS', binary);
-    })
-    .filter(Boolean);
+    .filter((entry) => fs.existsSync(path.join(dir, entry.name, 'Contents', 'MacOS')))
+    .map((entry) => entry.name);
 }
 
 // The game binary at the root of the build, excluding Chromium helpers/libraries.
@@ -184,7 +173,7 @@ function main() {
 
   const executables = detectExecutables(CONTENT_DIR, platform);
   if (executables.length) {
-    console.log(`Steam launch executable: ${executables.join(', ')}`);
+    console.log(`Steam launch option: ${executables.join(', ')}`);
   } else {
     console.warn('Warning: no launch executable detected in the content root.');
   }
