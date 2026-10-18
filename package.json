@@ -48,6 +48,7 @@
     "mac": {
       "category": "public.app-category.games",
       "icon": "assets/icon.png",
+      "identity": "-",
       "extendInfo": {
         "LSUIElement": false,
         "LSBackgroundOnly": false
