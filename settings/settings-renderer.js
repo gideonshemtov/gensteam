@@ -67,6 +67,11 @@ class SettingsRenderer {
       this.addCustomButton();
     });
 
+    // Add hotkey
+    document.getElementById('addHotkeyBtn').addEventListener('click', () => {
+      this.addHotkey();
+    });
+
     // Setting inputs change detection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('setting-input')) {
@@ -135,6 +140,9 @@ class SettingsRenderer {
 
     // Populate button list
     this.populateButtonList();
+
+    // Populate hotkey list
+    this.populateHotkeyList();
 
     // Populate sound list
     this.populateSoundList();
@@ -263,6 +271,154 @@ class SettingsRenderer {
     this.syncJsonEditor();
   }
 
+  populateHotkeyList() {
+    const list = document.getElementById('hotkeyList');
+    if (!list) return;
+
+    const bindings = this.currentSettings.hotkeys?.bindings || [];
+    list.textContent = '';
+
+    if (bindings.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'hotkey-editor-empty';
+      empty.textContent = 'No hotkeys yet. Click "Add Hotkey" to create one.';
+      list.appendChild(empty);
+      return;
+    }
+
+    bindings.forEach((binding, index) => {
+      list.appendChild(this.createHotkeyEditorRow(binding, index));
+    });
+  }
+
+  createHotkeyEditorRow(binding, index) {
+    const row = document.createElement('div');
+    row.className = 'hotkey-edit-item';
+
+    const warning = document.createElement('div');
+    warning.className = 'hotkey-warning';
+    warning.style.display = 'none';
+
+    const keysInput = document.createElement('input');
+    keysInput.type = 'text';
+    keysInput.readOnly = true;
+    keysInput.className = 'setting-input hotkey-keys-input';
+    keysInput.placeholder = 'Click, then press keys';
+    keysInput.title = 'Click and press a key combination';
+    keysInput.value = binding.keys ?? '';
+
+    keysInput.addEventListener('focus', () => {
+      keysInput.classList.add('recording');
+      keysInput.placeholder = 'Press keys...';
+    });
+    keysInput.addEventListener('blur', () => {
+      keysInput.classList.remove('recording');
+      keysInput.placeholder = 'Click, then press keys';
+    });
+    keysInput.addEventListener('keydown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.recordHotkey(event, binding, keysInput, warning);
+    });
+
+    const commandInput = document.createElement('input');
+    commandInput.type = 'text';
+    commandInput.className = 'setting-input hotkey-command-input';
+    commandInput.placeholder = 'Command to send (e.g. look)';
+    commandInput.value = binding.command ?? '';
+    commandInput.addEventListener('input', () => {
+      binding.command = commandInput.value;
+      this.markAsChanged();
+      this.syncJsonEditor();
+    });
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'btn danger';
+    removeButton.textContent = 'Remove';
+    removeButton.addEventListener('click', () => this.removeHotkey(index));
+
+    row.append(keysInput, commandInput, removeButton, warning);
+    return row;
+  }
+
+  async recordHotkey(event, binding, keysInput, warning) {
+    if (!window.electronAPI?.hotkeys?.record) {
+      this.showWarning(warning, 'Hotkey recording is not available.');
+      return;
+    }
+
+    let result = null;
+    try {
+      result = await window.electronAPI.hotkeys.record({
+        key: event.key,
+        control: event.ctrlKey,
+        alt: event.altKey,
+        shift: event.shiftKey,
+        meta: event.metaKey,
+      });
+    } catch {
+      result = null;
+    }
+
+    if (!result) {
+      this.showWarning(warning, 'That key is not supported. Try a function key, or a letter/number with a modifier.');
+      return;
+    }
+    if (!result.safe) {
+      this.showWarning(warning, 'Include Ctrl/Cmd/Alt, or use a function or navigation key, so normal typing is not intercepted.');
+      return;
+    }
+
+    binding.keys = result.keys;
+    keysInput.value = result.keys;
+    this.hideWarning(warning);
+    this.markAsChanged();
+    this.syncJsonEditor();
+  }
+
+  addHotkey() {
+    if (!this.currentSettings.hotkeys) {
+      this.currentSettings.hotkeys = { enabled: true, bindings: [] };
+    }
+    if (!Array.isArray(this.currentSettings.hotkeys.bindings)) {
+      this.currentSettings.hotkeys.bindings = [];
+    }
+
+    this.currentSettings.hotkeys.bindings.push({ keys: '', command: '' });
+    this.markAsChanged();
+    this.populateHotkeyList();
+
+    const inputs = document.querySelectorAll('.hotkey-keys-input');
+    if (inputs.length > 0) {
+      inputs[inputs.length - 1].focus();
+    }
+
+    this.syncJsonEditor();
+  }
+
+  removeHotkey(index) {
+    const bindings = this.currentSettings.hotkeys?.bindings;
+    if (!Array.isArray(bindings)) {
+      return;
+    }
+
+    bindings.splice(index, 1);
+    this.markAsChanged();
+    this.populateHotkeyList();
+    this.syncJsonEditor();
+  }
+
+  showWarning(warning, message) {
+    warning.textContent = message;
+    warning.style.display = 'block';
+  }
+
+  hideWarning(warning) {
+    warning.textContent = '';
+    warning.style.display = 'none';
+  }
+
   // Only accept well-formed hex colors; anything else falls back to a neutral grey.
   getSafeColor(color) {
     return typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(color) ? color : '#888888';
@@ -339,11 +495,21 @@ class SettingsRenderer {
 
   async saveSettings() {
     try {
-      const result = await window.electronAPI.settings.save(this.currentSettings);
-      
+      // Drop half-finished hotkeys (no key recorded yet) so they never persist.
+      const payload = JSON.parse(JSON.stringify(this.currentSettings));
+      if (Array.isArray(payload.hotkeys?.bindings)) {
+        payload.hotkeys.bindings = payload.hotkeys.bindings.filter(
+          (binding) => binding && typeof binding.keys === 'string' && binding.keys.trim() !== '',
+        );
+      }
+
+      const result = await window.electronAPI.settings.save(payload);
+
       if (result.success) {
-        this.originalSettings = JSON.parse(JSON.stringify(this.currentSettings));
+        this.currentSettings = payload;
+        this.originalSettings = JSON.parse(JSON.stringify(payload));
         this.hasUnsavedChanges = false;
+        this.populateUI();
         this.showSuccess('Settings saved successfully!');
         this.updateSaveButtonState();
       } else {

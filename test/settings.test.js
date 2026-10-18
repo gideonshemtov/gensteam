@@ -37,6 +37,8 @@ test('loads defaults when no settings file exists', () => {
   assert.equal(settings.window.width, 1280);
   assert.deepEqual(settings.timers.activeTimers, []);
   assert.equal(settings.sounds.enabled, true);
+  assert.equal(settings.hotkeys.enabled, true);
+  assert.deepEqual(settings.hotkeys.bindings, []);
   assert.ok(!('game' in settings), 'game settings should be gone');
 });
 
@@ -67,6 +69,23 @@ test('set() notifies subscribers with the new settings', () => {
 
   assert.ok(received);
   assert.equal(received.ui.buttonPanelWidth, 80);
+});
+
+test('hotkey bindings survive a save/reload round-trip', () => {
+  const { sm, dir } = makeManager();
+
+  sm.set('hotkeys.bindings', [
+    { keys: 'F1', command: 'look' },
+    { keys: 'Ctrl+1', command: 'who' },
+  ]);
+
+  electronStub.app.getPath = () => dir;
+  const reloaded = new SettingsManager();
+
+  assert.deepEqual(reloaded.get('hotkeys.bindings'), [
+    { keys: 'F1', command: 'look' },
+    { keys: 'Ctrl+1', command: 'who' },
+  ]);
 });
 
 test('resetSection() restores defaults for that section only', () => {

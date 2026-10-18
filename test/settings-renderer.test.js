@@ -35,3 +35,10 @@ test('custom buttons can be configured from the UI', () => {
   assert.ok(rendererSource.includes('addCustomButton'), 'renderer is missing addCustomButton()');
   assert.ok(rendererSource.includes('removeCustomButton'), 'renderer is missing removeCustomButton()');
 });
+
+test('hotkeys can be configured from the UI', () => {
+  assert.ok(html.includes('id="addHotkeyBtn"'), 'settings.html is missing the Add Hotkey control');
+  assert.ok(html.includes('data-path="hotkeys.enabled"'), 'settings.html is missing the hotkey enable toggle');
+  assert.ok(rendererSource.includes('addHotkey'), 'renderer is missing addHotkey()');
+  assert.ok(rendererSource.includes('recordHotkey'), 'renderer is missing recordHotkey()');
+});

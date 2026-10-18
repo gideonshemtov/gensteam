@@ -8,6 +8,7 @@ const SettingsWindow = require('./settings/SettingsWindow');
 const SettingsIPC = require('./settings/SettingsIPC');
 const MenuBuilder = require('./js/MenuBuilder');
 const FindBarManager = require('./js/FindBarManager');
+const HotkeyManager = require('./js/HotkeyManager');
 const TimerIPC = require('./js/TimerIPC');
 const { WindowManager } = require('./js/WindowManager');
 const {
@@ -22,6 +23,7 @@ let settingsManager;
 let settingsWindow;
 let menuBuilder;
 let findBarManager;
+let hotkeyManager;
 let timerIPC;
 let windowManager;
 
@@ -156,6 +158,8 @@ if (!gotSingleInstanceLock) {
 
     menuBuilder = new MenuBuilder(settingsManager, settingsWindow, () => windowManager && windowManager.showZoomBadge());
 
+    hotkeyManager = new HotkeyManager(settingsManager);
+
     timerIPC = new TimerIPC(settingsManager);
     timerIPC.setupHandlers();
 
@@ -223,7 +227,11 @@ function createWindow() {
   windowManager.findBarManager = findBarManager;
   windowManager.setupFindBar();
 
+  // Configurable keyboard shortcuts that send commands while the game is focused.
+  hotkeyManager.attach(win);
+
   win.on('closed', () => {
+    hotkeyManager.detach();
     if (settingsWindow && settingsWindow.isOpen()) {
       settingsWindow.close();
     }

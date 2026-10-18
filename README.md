@@ -6,6 +6,7 @@ The official desktop client for [Genesis MUD](https://www.genesismud.org), built
 
 - **Dedicated Desktop Experience**: Run Genesis MUD as a standalone desktop application
 - **Customizable Button Panel**: Quick access to frequently used commands
+- **Keyboard Hotkeys**: Bind key combinations (e.g. `F1` or `Ctrl+1`) to commands that are sent while the game window is focused
 - **Command Timers**: Set up recurring commands that execute automatically at specified intervals
 - **Find in Page**: Search game text with Ctrl+F (Cmd+F on macOS)
 - **Adjustable Text Size**: Zoom the game text with Ctrl +/−/0 or Ctrl + mouse wheel; a boxed percentage badge appears in the top-right
@@ -102,6 +103,8 @@ Main-process modules are exercised against a lightweight `electron` stub
 ├── timer-preload.js          # Timer IPC preload script
 ├── js/
 │   ├── ButtonPanel.js        # Button panel management
+│   ├── HotkeyManager.js      # Configurable command hotkeys
+│   ├── hotkeyKeys.js         # Hotkey parsing/matching (shared with preferences)
 │   ├── TimerManager.js       # Command timer functionality
 │   ├── CommandSender.js      # Shared command-sending (mudAPI / input fallback)
 │   ├── PageToast.js          # Reusable on-screen toast (zoom indicator)
@@ -180,6 +183,25 @@ The left sidebar contains customizable quick-action buttons for common commands.
 3. Click **+ Add Button** to add a new one
 4. Click **Save** to apply your changes
 
+## Keyboard Hotkeys
+
+Hotkeys send commands to the MUD when you press a key combination while the game window is focused.
+
+### Creating a Hotkey
+
+1. Go to **View → Preferences** → **Hotkeys**
+2. Click **+ Add Hotkey**
+3. Click the key field and press the combination you want (e.g. `F1` or `Ctrl+1`)
+4. Enter the command to send (e.g. `look`)
+5. Click **Save**
+
+### Hotkey Notes
+
+- A hotkey must include Ctrl/Cmd/Alt, or be a function/navigation key (F1–F24, arrows, Home/End, Page Up/Page Down, Insert/Delete, Escape). Plain letters and numbers are rejected so normal typing is never intercepted.
+- Hotkeys only fire while the game window is focused; they are ignored when another window (e.g. Preferences) is active.
+- The key is consumed, so it does not also reach the game or a menu shortcut.
+- Repeat while held is ignored, so holding a hotkey does not flood the MUD with commands.
+
 ## Sound Triggers
 
 The client can play sounds in response to MUD client triggers. Configure sounds in **Preferences → Sound Settings**, then reference them from trigger scripts:
@@ -212,6 +234,7 @@ The application can be customized through the preferences window (**View → Pre
 
 - **UI Settings**: Toggle button panel, adjust panel width, hide menu bar
 - **Button Configuration**: Customize command buttons
+- **Hotkey Configuration**: Bind key combinations to commands
 - **Sound Settings**: Enable sounds, master volume, and sound mappings
 - **Window Settings**: Default window size
 - **JSON Editor**: Direct editing of the full settings file

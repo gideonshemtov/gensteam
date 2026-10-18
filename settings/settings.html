@@ -303,6 +303,58 @@
             border: 1px dashed #5a5a5a;
         }
 
+        .hotkey-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 640px;
+        }
+
+        .hotkey-edit-item {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background: #3c3c3c;
+            border-radius: 5px;
+            border: 1px solid #5a5a5a;
+        }
+
+        .hotkey-edit-item .setting-input {
+            max-width: none;
+            height: 30px;
+        }
+
+        .hotkey-keys-input {
+            width: 180px;
+            font-family: 'Courier New', Consolas, monospace;
+        }
+
+        .hotkey-keys-input.recording {
+            border-color: #007acc;
+        }
+
+        .hotkey-command-input {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .hotkey-warning {
+            width: 100%;
+            color: #e0a030;
+            font-size: 11px;
+        }
+
+        .hotkey-editor-empty {
+            color: #888888;
+            font-size: 12px;
+            padding: 10px;
+            background: #3c3c3c;
+            border-radius: 5px;
+            border: 1px dashed #5a5a5a;
+        }
+
         .json-editor-container {
             display: none;
             height: 100%;
@@ -478,6 +530,10 @@
                     <span class="sidebar-item-icon">🔘</span>
                     Custom Buttons
                 </div>
+                <div class="sidebar-item" data-section="hotkeys">
+                    <span class="sidebar-item-icon">⌨️</span>
+                    Hotkeys
+                </div>
                 <div class="sidebar-item" data-section="sounds">
                     <span class="sidebar-item-icon">🔊</span>
                     Sound Settings
@@ -553,6 +609,26 @@
                             <div class="setting-description">Add, edit, and remove the quick-action buttons shown in the game window. Changes are applied when you save.</div>
                             <div class="button-editor" id="buttonList"></div>
                             <button type="button" class="btn secondary" id="addButtonBtn" style="margin-top: 10px;">+ Add Button</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hotkey Settings -->
+                <div class="settings-section" data-section="hotkeys">
+                    <div class="setting-group">
+                        <div class="setting-group-title">Keyboard Hotkeys</div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Enable Hotkeys</label>
+                            <div class="setting-description">Allow keyboard shortcuts to send commands while the game window is focused</div>
+                            <input type="checkbox" class="setting-input setting-checkbox" data-path="hotkeys.enabled">
+                        </div>
+
+                        <div class="setting-item">
+                            <label class="setting-label">Hotkey Bindings</label>
+                            <div class="setting-description">Each hotkey sends its command to the MUD when pressed. Click a key field and press the combination you want; use a function key or hold Ctrl/Cmd/Alt so normal typing is not intercepted. Changes are applied when you save.</div>
+                            <div class="hotkey-editor" id="hotkeyList"></div>
+                            <button type="button" class="btn secondary" id="addHotkeyBtn" style="margin-top: 10px;">+ Add Hotkey</button>
                         </div>
                     </div>
                 </div>

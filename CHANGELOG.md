@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Configurable keyboard hotkeys: bind a key combination (e.g. `F1` or `Ctrl+1`) to a command that is sent while the game window is focused. Configure them in **Preferences → Hotkeys**; plain typing keys are rejected so normal input is never intercepted
 - `pnpm run steam:release:linux` builds the Linux app natively (`dist/linux-unpacked/`) and uploads it to Steam with Docker in one command
 
 ### Changed

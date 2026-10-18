@@ -25,6 +25,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSoundUrl,
   getAvailableSounds: () => ipcRenderer.invoke('get-available-sounds'),
 
+  hotkeys: {
+    record: (descriptor) => ipcRenderer.invoke('hotkeys:record', descriptor),
+  },
+
   closeWindow: () => ipcRenderer.invoke('window:close'),
   onCloseRequested: (callback) => ipcRenderer.on('window:close-requested', callback),
   forceClose: () => ipcRenderer.invoke('window:force-close'),

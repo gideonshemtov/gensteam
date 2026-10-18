@@ -113,6 +113,37 @@ class SettingsManager {
           },
           additionalProperties: false
         },
+        hotkeys: {
+          type: 'object',
+          properties: {
+            enabled: {
+              type: 'boolean',
+              default: true,
+              description: 'Allow keyboard shortcuts to send commands while the game window is focused'
+            },
+            bindings: {
+              type: 'array',
+              default: [],
+              items: {
+                type: 'object',
+                properties: {
+                  keys: {
+                    type: 'string',
+                    description: 'Key combination, e.g. "F1" or "Ctrl+1"'
+                  },
+                  command: {
+                    type: 'string',
+                    description: 'Command to send to the MUD when the keys are pressed'
+                  }
+                },
+                required: ['keys', 'command'],
+                additionalProperties: false
+              },
+              description: 'Keyboard shortcuts that send commands to the MUD'
+            }
+          },
+          additionalProperties: false
+        },
         window: {
           type: 'object',
           properties: {
