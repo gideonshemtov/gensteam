@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Preferences window is built from one file pair per section (`settings/sections/<name>.js` controller + `<name>.html` markup), with shared styles in `settings.css` and a thin shell in `settings-renderer.js`, instead of one large HTML/renderer file. Section markup is read by the main process and inserted with `DOMParser` (never as raw HTML); behaviour is unchanged
 - Steam depot selection now always uses `STEAM_DEPOT_ID`: each build machine (Linux, Windows, macOS) has its own `.env` with that platform's depot ID, so the `STEAM_DEPOT_ID_<PLATFORM>` overrides were removed
 
+### Fixed
+
+- The packaged app no longer bundles the `steam/` tooling directory, `test/`, `scripts/` or `.env`. The `files` glob was sweeping them into `app.asar`, which grew to gigabytes (each build packing the previous upload's content), broke the universal macOS build ("value of length is out of range") and shipped `.env` inside the app
+
 ## [1.0.21] - 2026-10-18
 
 ### Fixed

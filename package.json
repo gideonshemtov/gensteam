@@ -30,7 +30,17 @@
     "files": [
       "**/*",
       "!dist",
-      "!.git"
+      "!.git",
+      "!.env",
+      "!.claude",
+      "!steam",
+      "!steam/**/*",
+      "!test",
+      "!test/**/*",
+      "!scripts",
+      "!scripts/**/*",
+      "!pnpm-lock.yaml",
+      "!pnpm-workspace.yaml"
     ],
     "asarUnpack": [
       "assets/sounds/**/*"
