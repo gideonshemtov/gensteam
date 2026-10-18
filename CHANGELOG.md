@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.21] - 2026-10-18
+
+### Fixed
+
+- The macOS app is now built as a regular foreground app (`LSUIElement`/`LSBackgroundOnly` set to false) and asks for its Dock icon at startup. Steam launches games without activating them, which left the client running as an accessory app with no menu bar of its own, so macOS kept showing Steam's menus.
+
 ## [1.0.20] - 2026-10-17
 
 ### Fixed

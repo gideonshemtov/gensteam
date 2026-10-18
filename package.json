@@ -1,6 +1,6 @@
 {
   "name": "genesis-electron",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "description": "Genesis MUD — Official Desktop Client",
   "main": "main.js",
   "author": "Genesis Mud",
@@ -36,7 +36,11 @@
     ],
     "mac": {
       "category": "public.app-category.games",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "extendInfo": {
+        "LSUIElement": false,
+        "LSBackgroundOnly": false
+      }
     },
     "win": {
       "target": {

@@ -73,6 +73,27 @@ function parentProcessName() {
   }
 }
 
+// macOS only: make sure the app is a regular, foreground app. An accessory
+// ("UIElement") app has no menu bar of its own, so macOS keeps showing the
+// previously active app's menus — e.g. Steam's — even while our window is in
+// front. `setActivationPolicy` alone has proven unreliable here, so also ask for
+// the Dock icon, which forces the regular policy.
+function ensureForegroundApp() {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+  try {
+    app.setActivationPolicy('regular');
+    const shown = app.dock && app.dock.show ? app.dock.show() : null;
+    if (shown && typeof shown.catch === 'function') {
+      shown.catch(() => {});
+    }
+    logStartup('ensureForegroundApp: setActivationPolicy(regular) + dock.show()');
+  } catch (err) {
+    logStartup(`ensureForegroundApp failed: ${err && err.message}`);
+  }
+}
+
 function activateApp(win, { allowLaunchServices = true } = {}) {
   if (!win || win.isDestroyed()) {
     return;
@@ -80,6 +101,7 @@ function activateApp(win, { allowLaunchServices = true } = {}) {
   if (win.isMinimized()) {
     win.restore();
   }
+  ensureForegroundApp();
   win.show();
   win.focus();
 
@@ -122,11 +144,9 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(() => {
     registerSoundProtocol();
 
-    if (process.platform === 'darwin') {
-      // Make sure the app is a regular foreground app (Dock icon + its own menu
-      // bar) even when Steam started it as a child process.
-      app.setActivationPolicy('regular');
-    }
+    // Make sure the app is a regular foreground app (Dock icon + its own menu
+    // bar) even when Steam started it as a child process.
+    ensureForegroundApp();
 
     ipcMain.handle('get-available-sounds', () => listAvailableSounds());
 
