@@ -72,7 +72,8 @@
     },
     "linux": {
       "target": "AppImage",
-      "icon": "assets/icon.png"
+      "icon": "assets/icon.png",
+      "executableName": "GenesisClient"
     }
   },
   "dependencies": {

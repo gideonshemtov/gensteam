@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The packaged app no longer bundles the `steam/` tooling directory, `test/`, `scripts/` or `.env`. The `files` glob was sweeping them into `app.asar`, which grew to gigabytes (each build packing the previous upload's content), broke the universal macOS build ("value of length is out of range") and shipped `.env` inside the app
 - macOS builds are ad-hoc signed again (`mac.identity: "-"`). With electron-builder 26.x the app was silently left unsigned because the machine has no valid Developer ID, an accidental change from the previous builder version
+- Linux builds keep the `GenesisClient` executable name. electron-builder 26.x changed the default from the product name to the lowercased package name (`genesis-electron`), which broke the Steam launch option ("Missing game executable")
 
 ## [1.0.21] - 2026-10-18
 
