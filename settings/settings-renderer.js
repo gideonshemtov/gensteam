@@ -1,30 +1,95 @@
 // settings/settings-renderer.js
+//
+// Shell for the preferences window. It builds the sidebar and section panels
+// from the section registry (settings/sections/*.js), owns the settings model
+// (load/save/reset/import/export), and handles the cross-section pieces: the
+// generic data-path form binding, the JSON editor, search, and messages.
+//
+// Each section owns its own markup and dynamic lists; the shell hands it a
+// context object with helpers instead of exposing the whole renderer.
+
+// Parse a section's static markup into importable nodes. DOMParser is used
+// rather than assigning raw markup, so section templates are never set as HTML
+// strings; settings values are always applied afterwards via value/textContent.
+function parseTemplate(markup) {
+  const parsed = new DOMParser().parseFromString(`<div>${markup}</div>`, 'text/html');
+  const wrapper = parsed.body.firstElementChild;
+  if (!wrapper) {
+    return [];
+  }
+  return Array.from(wrapper.childNodes).map((node) => document.importNode(node, true));
+}
+
 class SettingsRenderer {
   constructor() {
     this.currentSettings = {};
     this.originalSettings = {};
-    this.currentSection = 'ui';
+    this.currentSection = null;
     this.hasUnsavedChanges = false;
-    
+    this.sections = [];
+
+    const self = this;
+    this.ctx = {
+      get settings() { return self.currentSettings; },
+      markChanged: () => self.markAsChanged(),
+      syncJson: () => self.syncJsonEditor(),
+      showError: (message) => self.showError(message),
+      showSuccess: (message) => self.showSuccess(message),
+      saveJson: () => self.saveJsonSettings(),
+      exportSettings: () => self.exportSettings(),
+      importSettings: () => self.importSettings(),
+      api: window.electronAPI,
+    };
+
     this.init();
   }
 
   async init() {
+    this.buildSections();
     this.setupEventListeners();
     await this.loadSettings();
     this.populateUI();
     this.setupSearch();
   }
 
-  setupEventListeners() {
-    // Sidebar navigation
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        const section = e.currentTarget.dataset.section;
-        this.switchSection(section);
-      });
-    });
+  buildSections() {
+    const contentBody = document.getElementById('contentBody');
+    const sidebarSections = document.getElementById('sidebarSections');
+    const registry = window.GenesisSettings?.sections || [];
 
+    this.sections = [];
+
+    for (const definition of registry) {
+      const panel = document.createElement('div');
+      panel.className = `settings-panel ${definition.containerClass || 'settings-section'}`;
+      panel.dataset.section = definition.id;
+      for (const node of parseTemplate(definition.template || '')) {
+        panel.appendChild(node);
+      }
+      contentBody.appendChild(panel);
+
+      const item = document.createElement('div');
+      item.className = 'sidebar-item';
+      item.dataset.section = definition.id;
+
+      const icon = document.createElement('span');
+      icon.className = 'sidebar-item-icon';
+      icon.textContent = definition.icon || '';
+
+      item.append(icon, document.createTextNode(` ${definition.title || definition.id}`));
+      item.addEventListener('click', () => this.switchSection(definition.id));
+      sidebarSections.appendChild(item);
+
+      definition.setup?.(panel, this.ctx);
+      this.sections.push({ definition, panel });
+    }
+
+    if (this.sections.length > 0) {
+      this.switchSection(this.sections[0].definition.id);
+    }
+  }
+
+  setupEventListeners() {
     // Save button
     document.getElementById('saveBtn').addEventListener('click', () => {
       this.saveSettings();
@@ -49,29 +114,6 @@ class SettingsRenderer {
       this.resetAllSettings();
     });
 
-    // JSON editor buttons
-    document.getElementById('saveJsonBtn').addEventListener('click', () => {
-      this.saveJsonSettings();
-    });
-
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      this.exportSettings();
-    });
-
-    document.getElementById('importBtn').addEventListener('click', () => {
-      this.importSettings();
-    });
-
-    // Add custom button
-    document.getElementById('addButtonBtn').addEventListener('click', () => {
-      this.addCustomButton();
-    });
-
-    // Add hotkey
-    document.getElementById('addHotkeyBtn').addEventListener('click', () => {
-      this.addHotkey();
-    });
-
     // Setting inputs change detection
     document.addEventListener('change', (e) => {
       if (e.target.classList.contains('setting-input')) {
@@ -82,10 +124,6 @@ class SettingsRenderer {
     document.addEventListener('input', (e) => {
       if (e.target.classList.contains('setting-input')) {
         this.handleSettingChange(e.target);
-      }
-      // Keep the volume percentage label in sync while dragging
-      if (e.target.id === 'volumeSlider') {
-        this.updateVolumeDisplay(e.target.value);
       }
     });
 
@@ -117,316 +155,33 @@ class SettingsRenderer {
     }
   }
 
+  // Populate the generic data-path inputs and then let each section refresh its
+  // own dynamic content (lists, derived labels, ...).
   populateUI() {
-    // Populate form inputs
-    document.querySelectorAll('.setting-input').forEach(input => {
+    document.querySelectorAll('.setting-input').forEach((input) => {
       const path = input.dataset.path;
-      if (path) {
-        const value = this.getNestedValue(this.currentSettings, path);
-        
-        if (input.type === 'checkbox') {
-          input.checked = Boolean(value);
-        } else {
-          input.value = value ?? '';
-        }
+      if (!path) return;
+
+      const value = this.getNestedValue(this.currentSettings, path);
+      if (input.type === 'checkbox') {
+        input.checked = Boolean(value);
+      } else {
+        input.value = value ?? '';
       }
     });
 
-    // Update volume display
-    const volumeSlider = document.getElementById('volumeSlider');
-    if (volumeSlider) {
-      this.updateVolumeDisplay(volumeSlider.value);
+    for (const { definition, panel } of this.sections) {
+      definition.populate?.(panel, this.ctx);
     }
 
-    // Populate button list
-    this.populateButtonList();
-
-    // Populate hotkey list
-    this.populateHotkeyList();
-
-    // Populate sound list
-    this.populateSoundList();
-
-    // Populate JSON editor
     this.updateJsonEditor();
-  }
-
-  updateVolumeDisplay(value) {
-    const volumeValue = document.getElementById('volumeValue');
-    if (volumeValue) {
-      const percentage = Math.round(value * 100);
-      volumeValue.textContent = `${percentage}%`;
-    }
-  }
-
-  populateButtonList() {
-    const buttonList = document.getElementById('buttonList');
-    const buttons = this.currentSettings.buttons?.customButtons || [];
-
-    buttonList.textContent = '';
-
-    if (buttons.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'button-editor-empty';
-      empty.textContent = 'No custom buttons yet. Click "Add Button" to create one.';
-      buttonList.appendChild(empty);
-      return;
-    }
-
-    buttons.forEach((button, index) => {
-      buttonList.appendChild(this.createButtonEditorRow(button, index));
-    });
-  }
-
-  createButtonEditorRow(button, index) {
-    const row = document.createElement('div');
-    row.className = 'button-edit-item';
-
-    const preview = document.createElement('div');
-    preview.className = 'button-preview';
-    const applyPreview = () => {
-      const color = this.getSafeColor(button.color);
-      preview.style.background = color;
-      preview.style.border = `1px solid ${color}`;
-      preview.textContent = button.icon ?? '';
-    };
-
-    const fields = document.createElement('div');
-    fields.className = 'button-edit-fields';
-
-    const addField = (name, labelText, value, type, onInput) => {
-      const label = document.createElement('label');
-      label.className = `button-edit-field ${name}-field`;
-
-      const caption = document.createElement('span');
-      caption.textContent = labelText;
-
-      const input = document.createElement('input');
-      input.type = type;
-      input.className = 'setting-input';
-      input.value = value ?? '';
-      input.addEventListener('input', () => {
-        onInput(input.value);
-        applyPreview();
-        this.markAsChanged();
-        this.syncJsonEditor();
-      });
-
-      label.append(caption, input);
-      return label;
-    };
-
-    // Keep a canonical (safe) hex value in the model for the color input.
-    if (button.color !== this.getSafeColor(button.color)) {
-      button.color = this.getSafeColor(button.color);
-    }
-
-    fields.append(
-      addField('icon', 'Icon', button.icon, 'text', (value) => { button.icon = value; }),
-      addField('title', 'Title', button.title, 'text', (value) => { button.title = value; }),
-      addField('command', 'Command', button.command, 'text', (value) => { button.command = value; }),
-      addField('color', 'Color', button.color, 'color', (value) => { button.color = value; }),
-    );
-
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'btn danger button-remove';
-    removeButton.textContent = 'Remove';
-    removeButton.addEventListener('click', () => this.removeCustomButton(index));
-
-    applyPreview();
-    row.append(preview, fields, removeButton);
-    return row;
-  }
-
-  addCustomButton() {
-    if (!this.currentSettings.buttons) {
-      this.currentSettings.buttons = {};
-    }
-    if (!Array.isArray(this.currentSettings.buttons.customButtons)) {
-      this.currentSettings.buttons.customButtons = [];
-    }
-
-    this.currentSettings.buttons.customButtons.push({
-      icon: '⭐',
-      title: 'New Button',
-      command: 'look',
-      color: '#4a90e2',
-    });
-
-    this.markAsChanged();
-    this.populateButtonList();
-    this.syncJsonEditor();
-  }
-
-  removeCustomButton(index) {
-    const buttons = this.currentSettings.buttons?.customButtons;
-    if (!Array.isArray(buttons)) {
-      return;
-    }
-
-    buttons.splice(index, 1);
-    this.markAsChanged();
-    this.populateButtonList();
-    this.syncJsonEditor();
-  }
-
-  populateHotkeyList() {
-    const list = document.getElementById('hotkeyList');
-    if (!list) return;
-
-    const bindings = this.currentSettings.hotkeys?.bindings || [];
-    list.textContent = '';
-
-    if (bindings.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'hotkey-editor-empty';
-      empty.textContent = 'No hotkeys yet. Click "Add Hotkey" to create one.';
-      list.appendChild(empty);
-      return;
-    }
-
-    bindings.forEach((binding, index) => {
-      list.appendChild(this.createHotkeyEditorRow(binding, index));
-    });
-  }
-
-  createHotkeyEditorRow(binding, index) {
-    const row = document.createElement('div');
-    row.className = 'hotkey-edit-item';
-
-    const warning = document.createElement('div');
-    warning.className = 'hotkey-warning';
-    warning.style.display = 'none';
-
-    const keysInput = document.createElement('input');
-    keysInput.type = 'text';
-    keysInput.readOnly = true;
-    keysInput.className = 'setting-input hotkey-keys-input';
-    keysInput.placeholder = 'Click, then press keys';
-    keysInput.title = 'Click and press a key combination';
-    keysInput.value = binding.keys ?? '';
-
-    keysInput.addEventListener('focus', () => {
-      keysInput.classList.add('recording');
-      keysInput.placeholder = 'Press keys...';
-    });
-    keysInput.addEventListener('blur', () => {
-      keysInput.classList.remove('recording');
-      keysInput.placeholder = 'Click, then press keys';
-    });
-    keysInput.addEventListener('keydown', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.recordHotkey(event, binding, keysInput, warning);
-    });
-
-    const commandInput = document.createElement('input');
-    commandInput.type = 'text';
-    commandInput.className = 'setting-input hotkey-command-input';
-    commandInput.placeholder = 'Command to send (e.g. look)';
-    commandInput.value = binding.command ?? '';
-    commandInput.addEventListener('input', () => {
-      binding.command = commandInput.value;
-      this.markAsChanged();
-      this.syncJsonEditor();
-    });
-
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'btn danger';
-    removeButton.textContent = 'Remove';
-    removeButton.addEventListener('click', () => this.removeHotkey(index));
-
-    row.append(keysInput, commandInput, removeButton, warning);
-    return row;
-  }
-
-  async recordHotkey(event, binding, keysInput, warning) {
-    if (!window.electronAPI?.hotkeys?.record) {
-      this.showWarning(warning, 'Hotkey recording is not available.');
-      return;
-    }
-
-    let result = null;
-    try {
-      result = await window.electronAPI.hotkeys.record({
-        key: event.key,
-        control: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
-        meta: event.metaKey,
-      });
-    } catch {
-      result = null;
-    }
-
-    if (!result) {
-      this.showWarning(warning, 'That key is not supported. Try a function key, or a letter/number with a modifier.');
-      return;
-    }
-    if (!result.safe) {
-      this.showWarning(warning, 'Include Ctrl/Cmd/Alt, or use a function or navigation key, so normal typing is not intercepted.');
-      return;
-    }
-
-    binding.keys = result.keys;
-    keysInput.value = result.keys;
-    this.hideWarning(warning);
-    this.markAsChanged();
-    this.syncJsonEditor();
-  }
-
-  addHotkey() {
-    if (!this.currentSettings.hotkeys) {
-      this.currentSettings.hotkeys = { enabled: true, bindings: [] };
-    }
-    if (!Array.isArray(this.currentSettings.hotkeys.bindings)) {
-      this.currentSettings.hotkeys.bindings = [];
-    }
-
-    this.currentSettings.hotkeys.bindings.push({ keys: '', command: '' });
-    this.markAsChanged();
-    this.populateHotkeyList();
-
-    const inputs = document.querySelectorAll('.hotkey-keys-input');
-    if (inputs.length > 0) {
-      inputs[inputs.length - 1].focus();
-    }
-
-    this.syncJsonEditor();
-  }
-
-  removeHotkey(index) {
-    const bindings = this.currentSettings.hotkeys?.bindings;
-    if (!Array.isArray(bindings)) {
-      return;
-    }
-
-    bindings.splice(index, 1);
-    this.markAsChanged();
-    this.populateHotkeyList();
-    this.syncJsonEditor();
-  }
-
-  showWarning(warning, message) {
-    warning.textContent = message;
-    warning.style.display = 'block';
-  }
-
-  hideWarning(warning) {
-    warning.textContent = '';
-    warning.style.display = 'none';
-  }
-
-  // Only accept well-formed hex colors; anything else falls back to a neutral grey.
-  getSafeColor(color) {
-    return typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/.test(color) ? color : '#888888';
   }
 
   updateJsonEditor() {
     const editor = document.getElementById('jsonEditor');
-    editor.value = JSON.stringify(this.currentSettings, null, 2);
+    if (editor) {
+      editor.value = JSON.stringify(this.currentSettings, null, 2);
+    }
   }
 
   // Keep the JSON editor in sync unless the user is currently editing it.
@@ -437,21 +192,13 @@ class SettingsRenderer {
   }
 
   switchSection(section) {
-    // Update sidebar
-    document.querySelectorAll('.sidebar-item').forEach(item => {
-      item.classList.remove('active');
+    document.querySelectorAll('#sidebarSections .sidebar-item').forEach((item) => {
+      item.classList.toggle('active', item.dataset.section === section);
     });
-    document.querySelector(`[data-section="${section}"]`).classList.add('active');
 
-    // Update content
-    document.querySelectorAll('.settings-section, .json-editor-container').forEach(section => {
-      section.classList.remove('active');
+    document.querySelectorAll('#contentBody .settings-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.dataset.section === section);
     });
-    
-    const targetSection = document.querySelector(`.settings-section[data-section="${section}"], .json-editor-container[data-section="${section}"]`);
-    if (targetSection) {
-      targetSection.classList.add('active');
-    }
 
     this.currentSection = section;
 
@@ -478,29 +225,15 @@ class SettingsRenderer {
 
     this.setNestedValue(this.currentSettings, path, value);
     this.markAsChanged();
-
-    // Update button list if buttons changed
-    if (path.startsWith('buttons.')) {
-      this.populateButtonList();
-    }
-
-    // Update sound list if sounds changed
-    if (path.startsWith('sounds.')) {
-      this.populateSoundList();
-    }
-
-    // Update JSON editor if not in JSON section
     this.syncJsonEditor();
   }
 
   async saveSettings() {
     try {
-      // Drop half-finished hotkeys (no key recorded yet) so they never persist.
+      // Let sections normalise the outgoing payload (e.g. drop empty hotkeys).
       const payload = JSON.parse(JSON.stringify(this.currentSettings));
-      if (Array.isArray(payload.hotkeys?.bindings)) {
-        payload.hotkeys.bindings = payload.hotkeys.bindings.filter(
-          (binding) => binding && typeof binding.keys === 'string' && binding.keys.trim() !== '',
-        );
+      for (const { definition } of this.sections) {
+        definition.beforeSave?.(payload);
       }
 
       const result = await window.electronAPI.settings.save(payload);
@@ -527,7 +260,7 @@ class SettingsRenderer {
         return; // Don't close the window
       }
     }
-    
+
     // Force close the window
     if (window.electronAPI && window.electronAPI.forceClose) {
       window.electronAPI.forceClose();
@@ -540,13 +273,13 @@ class SettingsRenderer {
       if (!confirmCancel) {
         return;
       }
-      
+
       // Revert all changes back to original settings
       this.currentSettings = JSON.parse(JSON.stringify(this.originalSettings));
       this.hasUnsavedChanges = false;
       this.populateUI(); // Update the UI to show the reverted values
     }
-    
+
     // Close the settings window
     if (window.electronAPI && window.electronAPI.forceClose) {
       window.electronAPI.forceClose();
@@ -560,12 +293,12 @@ class SettingsRenderer {
     try {
       const editor = document.getElementById('jsonEditor');
       const jsonText = editor.value;
-      
+
       // Parse JSON to validate
       const parsedSettings = JSON.parse(jsonText);
-      
+
       const result = await window.electronAPI.settings.save(parsedSettings);
-      
+
       if (result.success) {
         this.currentSettings = parsedSettings;
         this.originalSettings = JSON.parse(JSON.stringify(parsedSettings));
@@ -603,7 +336,7 @@ class SettingsRenderer {
   async exportSettings() {
     try {
       const jsonString = await window.electronAPI.settings.exportJson();
-      
+
       // Create and trigger download
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -614,7 +347,7 @@ class SettingsRenderer {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       this.showSuccess('Settings exported successfully!');
     } catch (error) {
       this.showError('Failed to export settings: ' + error.message);
@@ -625,15 +358,15 @@ class SettingsRenderer {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    
+
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
+
       try {
         const text = await file.text();
         const result = await window.electronAPI.settings.importJson(text);
-        
+
         if (result.success) {
           this.currentSettings = result.settings;
           this.originalSettings = JSON.parse(JSON.stringify(result.settings));
@@ -648,7 +381,7 @@ class SettingsRenderer {
         this.showError('Failed to read file: ' + error.message);
       }
     };
-    
+
     input.click();
   }
 
@@ -661,97 +394,25 @@ class SettingsRenderer {
 
   performSearch(query) {
     const normalizedQuery = query.toLowerCase().trim();
-    
+
     if (!normalizedQuery) {
       // Show all settings
-      document.querySelectorAll('.setting-item').forEach(item => {
+      document.querySelectorAll('.setting-item').forEach((item) => {
         item.style.display = 'block';
       });
       return;
     }
 
-    document.querySelectorAll('.setting-item').forEach(item => {
+    document.querySelectorAll('.setting-item').forEach((item) => {
       const label = item.querySelector('.setting-label')?.textContent.toLowerCase() || '';
       const description = item.querySelector('.setting-description')?.textContent.toLowerCase() || '';
-      
+
       if (label.includes(normalizedQuery) || description.includes(normalizedQuery)) {
         item.style.display = 'block';
       } else {
         item.style.display = 'none';
       }
     });
-  }
-
-  populateSoundList() {
-    const soundList = document.getElementById('soundList');
-    const sounds = this.currentSettings.sounds?.soundMappings || [];
-
-    soundList.textContent = '';
-    sounds.forEach((sound) => {
-      const soundItem = document.createElement('div');
-      soundItem.className = 'button-item'; // Reuse button item styling
-
-      const preview = document.createElement('div');
-      preview.className = 'button-preview';
-      preview.style.background = '#4a90e2';
-      preview.style.border = '1px solid #4a90e2';
-      preview.style.fontSize = '12px';
-      preview.textContent = '🔊';
-
-      const info = document.createElement('div');
-      info.className = 'button-info';
-
-      const title = document.createElement('div');
-      title.className = 'button-title';
-      title.textContent = `${sound.name ?? ''} (${sound.filename ?? ''})`;
-
-      const description = document.createElement('div');
-      description.className = 'button-command';
-      description.textContent = sound.description || 'No description';
-
-      info.append(title, description);
-
-      const testButton = document.createElement('button');
-      testButton.className = 'btn';
-      testButton.textContent = 'Test';
-      testButton.style.marginLeft = '10px';
-      testButton.style.padding = '4px 8px';
-      testButton.style.fontSize = '11px';
-      testButton.addEventListener('click', () => this.playSound(sound.name));
-
-      soundItem.append(preview, info, testButton);
-      soundList.appendChild(soundItem);
-    });
-  }
-
-  async playSound(soundName) {
-    try {
-      const sounds = this.currentSettings.sounds?.soundMappings || [];
-      const sound = sounds.find(s => s.name === soundName);
-      if (!sound) {
-        this.showError(`Sound mapping not found: ${soundName}`);
-        return;
-      }
-
-      if (!window.electronAPI?.getSoundUrl) {
-        this.showError('Sound testing not available');
-        return;
-      }
-
-      const url = window.electronAPI.getSoundUrl(sound.filename);
-      if (!url) {
-        this.showError(`Failed to play sound: ${soundName}. Check if the file exists in assets/sounds/`);
-        return;
-      }
-
-      const masterVolume = this.currentSettings.sounds?.masterVolume ?? 1.0;
-      const audio = new Audio(url);
-      audio.volume = Math.min(1, Math.max(0, masterVolume));
-      await audio.play();
-      this.showSuccess(`Played sound: ${soundName}`);
-    } catch (error) {
-      this.showError('Error testing sound: ' + error.message);
-    }
   }
 
   getNestedValue(obj, path) {
@@ -778,17 +439,17 @@ class SettingsRenderer {
   updateSaveButtonState() {
     const saveBtn = document.getElementById('saveBtn');
     const saveJsonBtn = document.getElementById('saveJsonBtn');
-    
+
     if (this.hasUnsavedChanges) {
       saveBtn.textContent = 'Save*';
-      saveJsonBtn.textContent = 'Save JSON*';
+      if (saveJsonBtn) saveJsonBtn.textContent = 'Save JSON*';
       saveBtn.style.background = '#cc6633';
-      saveJsonBtn.style.background = '#cc6633';
+      if (saveJsonBtn) saveJsonBtn.style.background = '#cc6633';
     } else {
       saveBtn.textContent = 'Save';
-      saveJsonBtn.textContent = 'Save JSON';
+      if (saveJsonBtn) saveJsonBtn.textContent = 'Save JSON';
       saveBtn.style.background = '#0e639c';
-      saveJsonBtn.style.background = '#0e639c';
+      if (saveJsonBtn) saveJsonBtn.style.background = '#0e639c';
     }
   }
 

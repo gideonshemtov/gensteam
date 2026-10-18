@@ -4,18 +4,31 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const repo = path.resolve(__dirname, '..');
-const rendererSource = fs.readFileSync(path.join(repo, 'settings', 'settings-renderer.js'), 'utf8');
 const html = fs.readFileSync(path.join(repo, 'settings', 'settings.html'), 'utf8');
+const sectionsDir = path.join(repo, 'settings', 'sections');
 
-test('settings renderer never builds HTML from settings values', () => {
-  for (const sink of ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write']) {
-    assert.equal(rendererSource.includes(sink), false, `settings-renderer.js should not use ${sink}`);
+function readSection(name) {
+  return fs.readFileSync(path.join(sectionsDir, `${name}.js`), 'utf8');
+}
+
+// Every file that renders the preferences UI: the shell plus one file per section.
+const rendererSources = [
+  fs.readFileSync(path.join(repo, 'settings', 'settings-renderer.js'), 'utf8'),
+  ...fs.readdirSync(sectionsDir).map((file) => fs.readFileSync(path.join(sectionsDir, file), 'utf8')),
+];
+
+test('settings renderers never build HTML from settings values', () => {
+  for (const source of rendererSources) {
+    for (const sink of ['innerHTML', 'outerHTML', 'insertAdjacentHTML', 'document.write']) {
+      assert.equal(source.includes(sink), false, `a settings renderer should not use ${sink}`);
+    }
   }
 });
 
-test('settings renderer renders dynamic values as text', () => {
-  assert.ok(rendererSource.includes('textContent'), 'expected textContent-based rendering');
-  assert.ok(rendererSource.includes('addEventListener'), 'expected listener-based interaction');
+test('settings renderers render dynamic values as text', () => {
+  const combined = rendererSources.join('\n');
+  assert.ok(combined.includes('textContent'), 'expected textContent-based rendering');
+  assert.ok(combined.includes('addEventListener'), 'expected listener-based interaction');
 });
 
 test('settings page ships a CSP that forbids inline scripts', () => {
@@ -29,16 +42,23 @@ test('settings page ships a CSP that forbids inline scripts', () => {
   assert.equal(scriptSrc.includes("'unsafe-eval'"), false, 'script-src must not allow eval');
 });
 
+test('the shell loads the section registry and every section file', () => {
+  assert.ok(html.includes('src="sections/registry.js"'), 'settings.html should load the section registry');
+  for (const id of ['ui', 'buttons', 'hotkeys', 'sounds', 'window', 'json']) {
+    assert.ok(html.includes(`src="sections/${id}.js"`), `settings.html should load the ${id} section`);
+  }
+});
+
 test('custom buttons can be configured from the UI', () => {
-  assert.ok(html.includes('id="addButtonBtn"'), 'settings.html is missing the Add Button control');
+  const buttons = readSection('buttons');
+  assert.ok(buttons.includes('id="addButtonBtn"'), 'buttons section is missing the Add Button control');
+  assert.ok(buttons.includes('addButtonBtn'), 'buttons section is missing its add handler');
   assert.equal(html.includes('edit in JSON mode'), false, 'button editing should not require JSON mode');
-  assert.ok(rendererSource.includes('addCustomButton'), 'renderer is missing addCustomButton()');
-  assert.ok(rendererSource.includes('removeCustomButton'), 'renderer is missing removeCustomButton()');
 });
 
 test('hotkeys can be configured from the UI', () => {
-  assert.ok(html.includes('id="addHotkeyBtn"'), 'settings.html is missing the Add Hotkey control');
-  assert.ok(html.includes('data-path="hotkeys.enabled"'), 'settings.html is missing the hotkey enable toggle');
-  assert.ok(rendererSource.includes('addHotkey'), 'renderer is missing addHotkey()');
-  assert.ok(rendererSource.includes('recordHotkey'), 'renderer is missing recordHotkey()');
+  const hotkeys = readSection('hotkeys');
+  assert.ok(hotkeys.includes('id="addHotkeyBtn"'), 'hotkeys section is missing the Add Hotkey control');
+  assert.ok(hotkeys.includes('data-path="hotkeys.enabled"'), 'hotkeys section is missing the enable toggle');
+  assert.ok(hotkeys.includes('recordHotkey'), 'hotkeys section is missing recordHotkey()');
 });

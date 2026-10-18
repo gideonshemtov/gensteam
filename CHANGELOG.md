@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Preferences window is built from one file per section (`settings/sections/`), each owning its own markup and logic, with shared styles in `settings.css` and a thin shell in `settings-renderer.js`, instead of one large HTML/renderer file. Behaviour is unchanged
 - Steam depot selection now always uses `STEAM_DEPOT_ID`: each build machine (Linux, Windows, macOS) has its own `.env` with that platform's depot ID, so the `STEAM_DEPOT_ID_<PLATFORM>` overrides were removed
 
 ## [1.0.21] - 2026-10-18

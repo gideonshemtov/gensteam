@@ -118,9 +118,11 @@ Main-process modules are exercised against a lightweight `electron` stub
 ├── settings/
 │   ├── SettingsManager.js    # Settings persistence and validation
 │   ├── SettingsWindow.js     # Settings window management
-│   ├── settings-renderer.js  # Settings UI logic
+│   ├── settings-renderer.js  # Preferences shell (nav, save/reset, JSON, search)
 │   ├── settings-preload.js   # Settings preload script
-│   └── settings.html         # Settings interface
+│   ├── settings.html         # Preferences shell markup
+│   ├── settings.css          # Preferences styles
+│   └── sections/             # One file per preferences section (ui, buttons, hotkeys, sounds, window, json)
 ├── assets/                   # Application icons and sound files
 ├── test/                     # Unit tests (Node built-in test runner)
 ├── steam/                    # SteamPipe upload scripts and docs

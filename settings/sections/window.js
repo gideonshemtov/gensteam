@@ -1,0 +1,23 @@
+// settings/sections/window.js - Window settings section.
+window.GenesisSettings.register({
+  id: 'window',
+  title: 'Window',
+  icon: '🪟',
+  template: `
+    <div class="setting-group">
+      <div class="setting-group-title">Window Settings</div>
+
+      <div class="setting-item">
+        <label class="setting-label">Default Width</label>
+        <div class="setting-description">Default window width in pixels (800-3840)</div>
+        <input type="number" class="setting-input" data-path="window.width" min="800" max="3840">
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">Default Height</label>
+        <div class="setting-description">Default window height in pixels (600-2160)</div>
+        <input type="number" class="setting-input" data-path="window.height" min="600" max="2160">
+      </div>
+    </div>
+  `,
+});
