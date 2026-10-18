@@ -1,0 +1,16 @@
+<div class="setting-group">
+    <div class="setting-group-title">Keyboard Hotkeys</div>
+
+    <div class="setting-item">
+        <label class="setting-label">Enable Hotkeys</label>
+        <div class="setting-description">Allow keyboard shortcuts to send commands while the game window is focused</div>
+        <input type="checkbox" class="setting-input setting-checkbox" data-path="hotkeys.enabled">
+    </div>
+
+    <div class="setting-item">
+        <label class="setting-label">Hotkey Bindings</label>
+        <div class="setting-description">Each hotkey sends its command to the MUD when pressed. Click a key field and press the combination you want; use a function key or hold Ctrl/Cmd/Alt so normal typing is not intercepted. Changes are applied when you save.</div>
+        <div class="hotkey-editor" id="hotkeyList"></div>
+        <button type="button" class="btn secondary" id="addHotkeyBtn" style="margin-top: 10px;">+ Add Hotkey</button>
+    </div>
+</div>

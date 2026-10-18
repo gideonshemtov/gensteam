@@ -29,6 +29,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     record: (descriptor) => ipcRenderer.invoke('hotkeys:record', descriptor),
   },
 
+  // Section markup partials (settings/sections/<name>.html), read by the main
+  // process because the renderer is sandboxed.
+  getPartial: (name) => ipcRenderer.invoke('settings:getPartial', name),
+
   closeWindow: () => ipcRenderer.invoke('window:close'),
   onCloseRequested: (callback) => ipcRenderer.on('window:close-requested', callback),
   forceClose: () => ipcRenderer.invoke('window:force-close'),

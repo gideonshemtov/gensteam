@@ -45,14 +45,14 @@ class SettingsRenderer {
   }
 
   async init() {
-    this.buildSections();
+    await this.buildSections();
     this.setupEventListeners();
     await this.loadSettings();
     this.populateUI();
     this.setupSearch();
   }
 
-  buildSections() {
+  async buildSections() {
     const contentBody = document.getElementById('contentBody');
     const sidebarSections = document.getElementById('sidebarSections');
     const registry = window.GenesisSettings?.sections || [];
@@ -63,7 +63,7 @@ class SettingsRenderer {
       const panel = document.createElement('div');
       panel.className = `settings-panel ${definition.containerClass || 'settings-section'}`;
       panel.dataset.section = definition.id;
-      for (const node of parseTemplate(definition.template || '')) {
+      for (const node of parseTemplate(await this.loadPartial(definition))) {
         panel.appendChild(node);
       }
       contentBody.appendChild(panel);
@@ -86,6 +86,18 @@ class SettingsRenderer {
 
     if (this.sections.length > 0) {
       this.switchSection(this.sections[0].definition.id);
+    }
+  }
+
+  // Section markup lives in settings/sections/<name>.html. The renderer is
+  // sandboxed, so the main process reads the file and returns its text.
+  async loadPartial(definition) {
+    const name = definition.partial || definition.id;
+    try {
+      const markup = await window.electronAPI?.getPartial?.(name);
+      return typeof markup === 'string' ? markup : '';
+    } catch {
+      return '';
     }
   }
 

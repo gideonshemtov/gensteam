@@ -122,7 +122,7 @@ Main-process modules are exercised against a lightweight `electron` stub
 │   ├── settings-preload.js   # Settings preload script
 │   ├── settings.html         # Preferences shell markup
 │   ├── settings.css          # Preferences styles
-│   └── sections/             # One file per preferences section (ui, buttons, hotkeys, sounds, window, json)
+│   └── sections/             # One .js controller + .html markup partial per preferences section
 ├── assets/                   # Application icons and sound files
 ├── test/                     # Unit tests (Node built-in test runner)
 ├── steam/                    # SteamPipe upload scripts and docs

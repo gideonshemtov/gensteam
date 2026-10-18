@@ -1,4 +1,6 @@
 const { ipcMain } = require('electron');
+const fs = require('fs');
+const path = require('path');
 const { formatHotkey, isSafeHotkey } = require('../js/hotkeyKeys');
 
 class SettingsIPC {
@@ -54,6 +56,19 @@ class SettingsIPC {
         return null;
       }
       return { keys, safe: isSafeHotkey(keys) };
+    });
+
+    // Return the markup for a preferences section. The name is restricted to a
+    // safe slug so it cannot escape settings/sections/.
+    ipcMain.handle('settings:getPartial', (_event, name) => {
+      if (typeof name !== 'string' || !/^[a-z][a-z0-9-]*$/.test(name)) {
+        return null;
+      }
+      try {
+        return fs.readFileSync(path.join(__dirname, 'sections', `${name}.html`), 'utf8');
+      } catch {
+        return null;
+      }
     });
   }
 }

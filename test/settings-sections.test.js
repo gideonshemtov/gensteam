@@ -22,6 +22,10 @@ function loadRegistry() {
   return sandbox.window.GenesisSettings;
 }
 
+function readPartial(section) {
+  return fs.readFileSync(path.join(sectionsDir, `${section.partial}.html`), 'utf8');
+}
+
 test('every section registers a complete definition in sidebar order', () => {
   const registry = loadRegistry();
 
@@ -33,8 +37,10 @@ test('every section registers a complete definition in sidebar order', () => {
   for (const section of registry.sections) {
     assert.equal(typeof section.title, 'string', `${section.id} is missing a title`);
     assert.equal(typeof section.icon, 'string', `${section.id} is missing an icon`);
-    assert.equal(typeof section.template, 'string', `${section.id} is missing a template`);
-    assert.ok(section.template.trim().length > 0, `${section.id} has an empty template`);
+    assert.equal(typeof section.partial, 'string', `${section.id} is missing a partial name`);
+
+    const partial = readPartial(section);
+    assert.ok(partial.trim().length > 0, `${section.id} has an empty partial`);
   }
 });
 
@@ -60,10 +66,18 @@ test('sections expose the lifecycle hooks their content needs', () => {
   assert.equal(typeof byId.json.setup, 'function');
 });
 
+test('section partials contain no scripts or inline event handlers', () => {
+  const registry = loadRegistry();
+  for (const section of registry.sections) {
+    const partial = readPartial(section);
+    assert.equal(/<script/i.test(partial), false, `${section.partial}.html contains a script tag`);
+    assert.equal(/\son[a-z]+\s*=/i.test(partial), false, `${section.partial}.html contains an inline handler`);
+  }
+});
+
 test('data-path inputs cover the editable settings', () => {
   const registry = loadRegistry();
-  const paths = registry.sections
-    .map((section) => section.template)
+  const paths = Array.from(registry.sections, (section) => readPartial(section))
     .join('\n')
     .match(/data-path="([^"]+)"/g)
     .map((match) => match.slice('data-path="'.length, -1));
