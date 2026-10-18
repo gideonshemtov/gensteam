@@ -70,9 +70,8 @@ and depot IDs in a `.env` file (see `.env.example`) and follow
 [`steam/README.md`](steam/README.md):
 
 ```bash
-# Linux
-pnpm run dist:linux:dir   # build dist/linux-unpacked/
-pnpm run steam:upload     # copy + upload to Steam
+# Linux (build natively, upload with Docker)
+pnpm run steam:release:linux   # == dist:linux:dir + steam:upload:docker
 
 # macOS (run on a Mac; builds a universal app)
 pnpm run steam:release:mac   # == dist:mac:dir + steam:upload:mac

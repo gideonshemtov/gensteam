@@ -20,6 +20,7 @@
     "steam:upload": "node steam/upload.js",
     "steam:upload:mac": "node steam/upload.js --platform=mac",
     "steam:release:mac": "pnpm run dist:mac:dir && pnpm run steam:upload:mac",
+    "steam:release:linux": "pnpm run dist:linux:dir && pnpm run steam:upload:docker",
     "steam:upload:docker": "bash steam/docker-upload.sh"
   },
   "build": {

@@ -42,6 +42,12 @@ pnpm run steam:upload
 If you don't have steamcmd installed locally, run it in Docker instead:
 
 ```bash
+pnpm run steam:release:linux   # == dist:linux:dir + steam:upload:docker
+```
+
+Or run the two steps yourself:
+
+```bash
 pnpm run dist:linux:dir
 pnpm run steam:upload:docker
 ```
@@ -68,11 +74,11 @@ No Docker needed; use native `steamcmd.exe`.
 pnpm run dist:win:dir          # -> dist\win-unpacked\
 ```
 
-`.env` for the Windows depot:
+`.env` on the Windows machine:
 
 ```
 STEAM_PLATFORM=windows
-STEAM_DEPOT_ID_WINDOWS=<windows depot id>
+STEAM_DEPOT_ID=<windows depot id>
 STEAMCMD=C:\steamcmd\steamcmd.exe
 ```
 
@@ -99,11 +105,11 @@ pnpm run dist:mac:dir          # -> dist/mac-universal/GenesisClient.app
 pnpm run steam:upload:mac      # == node steam/upload.js --platform=mac
 ```
 
-`.env` for the macOS depot:
+`.env` on the Mac:
 
 ```
 STEAM_PLATFORM=mac
-STEAM_DEPOT_ID_MAC=<macOS depot id>
+STEAM_DEPOT_ID=<macOS depot id>
 ```
 
 The launch option **Executable** is `GenesisClient.app` (the bundle itself). In
@@ -116,8 +122,10 @@ arguments empty.
 > Silicon, which crashes Electron apps (the window flashes and closes). Launching
 > the bundle lets macOS pick the native arm64 slice.
 
-Note: each platform needs its own **depot** in Steamworks, and
-`STEAM_DEPOT_ID` acts as a fallback for `STEAM_DEPOT_ID_<PLATFORM>`.
+Note: each platform needs its own **depot** in Steamworks, but not its own key
+in `.env`. Each build machine has its own `.env`, so `STEAM_DEPOT_ID` holds that
+machine's platform depot (Linux on the Linux box, Windows on the Windows box,
+and so on). There are no `STEAM_DEPOT_ID_<PLATFORM>` overrides.
 
 `steam:upload` will:
 

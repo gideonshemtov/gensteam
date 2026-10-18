@@ -138,9 +138,10 @@ function resolveConfig(env) {
   const appId = (env.STEAM_APP_ID || '').trim();
   if (!appId) fail('STEAM_APP_ID is not set in .env');
 
-  const depotId = (env[`STEAM_DEPOT_ID_${platform.toUpperCase()}`] || env.STEAM_DEPOT_ID || '').trim();
+  // One .env per build machine: STEAM_DEPOT_ID is that machine's platform depot.
+  const depotId = (env.STEAM_DEPOT_ID || '').trim();
   if (!depotId) {
-    fail(`STEAM_DEPOT_ID (or STEAM_DEPOT_ID_${platform.toUpperCase()}) is not set in .env`);
+    fail('STEAM_DEPOT_ID is not set in .env');
   }
 
   return {

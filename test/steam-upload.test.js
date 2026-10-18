@@ -71,11 +71,10 @@ test('copyDir preserves relative symlinks in .app frameworks', (t) => {
   assert.ok(fs.existsSync(path.join(dest, 'X.framework', 'Versions', 'Current', 'Resources', 'icudtl.dat')));
 });
 
-test('resolveConfig picks the platform-specific depot and source', () => {
+test('resolveConfig uses STEAM_DEPOT_ID for every platform and picks the source', () => {
   const config = resolveConfig({
     STEAM_APP_ID: '4022530',
-    STEAM_DEPOT_ID_LINUX: '4022533',
-    STEAM_DEPOT_ID_WINDOWS: '4022537',
+    STEAM_DEPOT_ID: '4022537',
     STEAM_PLATFORM: 'windows',
   });
 
@@ -84,7 +83,7 @@ test('resolveConfig picks the platform-specific depot and source', () => {
   assert.ok(config.sourceDir.endsWith(path.join('dist', 'win-unpacked')));
 });
 
-test('resolveConfig defaults to linux and falls back to STEAM_DEPOT_ID', () => {
+test('resolveConfig defaults to linux and uses STEAM_DEPOT_ID', () => {
   const config = resolveConfig({ STEAM_APP_ID: '1', STEAM_DEPOT_ID: '2' });
 
   assert.equal(config.platform, 'linux');
@@ -100,10 +99,10 @@ test('resolveSteamcmdHome uses a private HOME by default and honors STEAMCMD_HOM
   );
 });
 
-test('resolveConfig supports the mac platform and depot', () => {
+test('resolveConfig supports the mac platform with STEAM_DEPOT_ID', () => {
   const config = resolveConfig({
     STEAM_APP_ID: '4022530',
-    STEAM_DEPOT_ID_MAC: '4022532',
+    STEAM_DEPOT_ID: '4022532',
     STEAM_PLATFORM: 'mac',
   });
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `pnpm run steam:release:linux` builds the Linux app natively (`dist/linux-unpacked/`) and uploads it to Steam with Docker in one command
+
+### Changed
+
+- Steam depot selection now always uses `STEAM_DEPOT_ID`: each build machine (Linux, Windows, macOS) has its own `.env` with that platform's depot ID, so the `STEAM_DEPOT_ID_<PLATFORM>` overrides were removed
+
 ## [1.0.21] - 2026-10-18
 
 ### Fixed
