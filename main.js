@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, session, ipcMain, Menu } = require('electron');
+const { app, BrowserWindow, session, ipcMain, Menu, net } = require('electron');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +11,7 @@ const FindBarManager = require('./js/FindBarManager');
 const HotkeyManager = require('./js/HotkeyManager');
 const TimerIPC = require('./js/TimerIPC');
 const { WindowManager } = require('./js/WindowManager');
+const { installWebClientHook } = require('./js/WebClientHook');
 const {
   registerSoundScheme,
   registerSoundProtocol,
@@ -143,12 +144,24 @@ if (!gotSingleInstanceLock) {
     }
   });
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     registerSoundProtocol();
 
     // Make sure the app is a regular foreground app (Dock icon + its own menu
     // bar) even when Steam started it as a child process.
     ensureForegroundApp();
+
+    // Add a narrow bridge to the official web client so the desktop UI can send
+    // commands through the client's alias engine instead of the raw WebSocket.
+    try {
+      const installed = await installWebClientHook({
+        session: session.defaultSession,
+        net,
+      });
+      logStartup(`genesisClient bridge: ${installed ? 'installed' : 'already installed'}`);
+    } catch (err) {
+      logStartup(`genesisClient bridge failed: ${err && err.message}`);
+    }
 
     ipcMain.handle('get-available-sounds', () => listAvailableSounds());
 

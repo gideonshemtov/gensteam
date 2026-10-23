@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Configurable keyboard hotkeys: bind a key combination (e.g. `F1` or `Ctrl+1`) to a command that is sent while the game window is focused. Configure them in **Preferences → Hotkeys**; plain typing keys are rejected so normal input is never intercepted
+- Buttons, hotkeys, and timers now send through the official web client's own command path, so player-defined JavaScript aliases run as if the command was typed. A small `window.genesisClient` bridge is injected into the game bundle at download time; the existing WebSocket/input paths remain as fallbacks if the bundle layout changes
 - `pnpm run steam:release:linux` builds the Linux app natively (`dist/linux-unpacked/`) and uploads it to Steam with Docker in one command
 
 ### Changed

@@ -33,6 +33,54 @@ test('sends via the MUD API when available', () => {
   assert.equal(input.dispatched.length, 0);
 });
 
+test('prefers the injected Genesis client bridge over the raw WebSocket', () => {
+  const { input } = setupDom();
+  const sent = [];
+  global.window.genesisClient = {
+    send: (command) => { sent.push(command); return true; },
+  };
+  global.window.mudAPI = { send: () => { throw new Error('should not use raw send'); } };
+
+  const sendCommand = require('../js/CommandSender');
+  const ok = sendCommand('look');
+
+  assert.equal(ok, true);
+  assert.deepEqual(sent, ['look']);
+  assert.equal(input.dispatched.length, 0);
+});
+
+test('can use the bridge history path for commands that should behave like typing', () => {
+  const { input } = setupDom();
+  const sent = [];
+  global.window.genesisClient = {
+    send: () => { throw new Error('should use sendTyped'); },
+    sendTyped: (command) => { sent.push(command); return true; },
+  };
+
+  const sendCommand = require('../js/CommandSender');
+  const ok = sendCommand('who', { recordHistory: true });
+
+  assert.equal(ok, true);
+  assert.deepEqual(sent, ['who']);
+  assert.equal(input.dispatched.length, 0);
+});
+
+test('falls back to the MUD API when the Genesis client bridge throws', () => {
+  const { input } = setupDom();
+  const sent = [];
+  global.window.genesisClient = {
+    send: () => { throw new Error('bridge failed'); },
+  };
+  global.window.mudAPI = { send: (command) => { sent.push(command); return true; } };
+
+  const sendCommand = require('../js/CommandSender');
+  const ok = sendCommand('look');
+
+  assert.equal(ok, true);
+  assert.deepEqual(sent, ['look']);
+  assert.equal(input.dispatched.length, 0);
+});
+
 test('falls back to the input field when the API fails', () => {
   const { input } = setupDom();
   global.window.mudAPI = { send: () => false };
