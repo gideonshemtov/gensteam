@@ -6,6 +6,7 @@ The official desktop client for [Genesis MUD](https://www.genesismud.org), built
 
 - **Dedicated Desktop Experience**: Run Genesis MUD as a standalone desktop application
 - **Customizable Button Panel**: Quick access to frequently used commands
+- **Alias-aware Commands**: Buttons, hotkeys, and timers use the web client's own command path, so player-defined JavaScript aliases run as if the command was typed
 - **Keyboard Hotkeys**: Bind key combinations (e.g. `F1` or `Ctrl+1`) to commands that are sent while the game window is focused
 - **Command Timers**: Set up recurring commands that execute automatically at specified intervals
 - **Find in Page**: Search game text with Ctrl+F (Cmd+F on macOS)
@@ -106,7 +107,9 @@ Main-process modules are exercised against a lightweight `electron` stub
 │   ├── HotkeyManager.js      # Configurable command hotkeys
 │   ├── hotkeyKeys.js         # Hotkey parsing/matching (shared with preferences)
 │   ├── TimerManager.js       # Command timer functionality
-│   ├── CommandSender.js      # Shared command-sending (mudAPI / input fallback)
+│   ├── CommandSender.js      # Shared command-sending (client bridge / mudAPI / input fallback)
+│   ├── WebClientHook.js      # Injects the alias-aware command bridge into the game bundle
+│   ├── game.js               # Shared game client URL and origin
 │   ├── PageToast.js          # Reusable on-screen toast (zoom indicator)
 │   ├── ZoomController.js     # Shared zoom logic
 │   ├── MudConnector.js       # WebSocket bridge and mudAPI
@@ -218,17 +221,28 @@ mudAPI.playSoundFile("combat.wav", 0.8);
 
 Place sound files in `assets/sounds/`. Sound mappings can be edited in the JSON settings editor.
 
-## MUD API
+## Command Sending and MUD API
 
-The client exposes `window.mudAPI` for integration with the Genesis web client. Timers and button panel commands use this API automatically once a WebSocket connection is established.
+Buttons, hotkeys, and timers send commands through the official web client's own command path. The app injects a small `window.genesisClient` bridge into the game bundle while it downloads, so the player's JavaScript aliases run and the client handles echo and output normally. If the bundle cannot be patched, the app falls back to the raw WebSocket and input-field paths.
+
+The injected bridge exposes:
 
 | Method | Description |
 |--------|-------------|
-| `mudAPI.send(message)` | Send a command like the web client (adds newline, shows in output) |
+| `genesisClient.send(command)` | Alias-aware send through the client's normal command path |
+| `genesisClient.sendRaw(command)` | Raw send that bypasses aliases |
+| `genesisClient.sendTyped(command)` | Alias-aware send that also records the command in input history |
+| `genesisClient.isConnected()` | Whether the MUD WebSocket is connected |
+
+The client also exposes `window.mudAPI` for trigger scripts:
+
+| Method | Description |
+|--------|-------------|
+| `mudAPI.send(message)` | Raw WebSocket send (adds newline and shows in output; bypasses aliases) |
 | `mudAPI.directSend(message)` | Raw WebSocket send without output display |
 | `mudAPI.playSound(name)` | Play a configured sound by name |
 | `mudAPI.playSoundFile(filename, volume)` | Play a sound file directly |
-| `mudAPI.status()` | Show WebSocket and sound status |
+| `mudAPI.status()` | Show WebSocket, bridge, and sound status |
 
 ## Configuration
 

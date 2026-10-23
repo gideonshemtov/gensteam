@@ -102,7 +102,9 @@ class MudConnector {
         }
       },
 
-      // MUD client compatible send (adds \n like the actual client)
+      // Raw WebSocket send. This deliberately bypasses client aliases so it is
+      // safe to call from inside an alias script without re-entering it. The
+      // desktop UI uses window.genesisClient.send() instead.
       send: (message) => {
         if (!connector.capturedWebSocket || !connector.originalWebSocketSend) {
           console.log('❌ No WebSocket captured yet');
@@ -173,6 +175,11 @@ class MudConnector {
           console.log('  - WebSocket State:', connector.capturedWebSocket.readyState);
           console.log('  - State meanings: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED');
         }
+        console.log('📊 Genesis client bridge:');
+        console.log('  - Available:', typeof window.genesisClient !== 'undefined');
+        if (typeof window.genesisClient !== 'undefined') {
+          console.log('  - Methods:', Object.keys(window.genesisClient).join(', '));
+        }
         console.log('📊 Sound Status:');
         console.log('  - SoundManager available:', typeof window.soundManager !== 'undefined');
         if (typeof window.soundManager !== 'undefined') {
@@ -187,6 +194,8 @@ class MudConnector {
           readyState: connector.capturedWebSocket?.readyState,
           url: connector.capturedWebSocket?.url,
           mudClientBehavior: 'Adds \\n to each command and displays in output like the actual client',
+          genesisClient: typeof window.genesisClient !== 'undefined',
+          genesisClientMethods: typeof window.genesisClient !== 'undefined' ? Object.keys(window.genesisClient) : [],
           soundManager: typeof window.soundManager !== 'undefined',
           soundSettings: typeof window.soundManager !== 'undefined' ? window.soundManager.getSoundSettings() : null
         };
