@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Upgraded Electron from 44.9.0 to 45.0.0. electron-builder stays on 26.17.0 for now
+- Preferences now closes with `Esc`. If the reset confirmation is open, `Esc` dismisses it; if a hotkey is being recorded, `Esc` cancels the recording first
 - Reorganized the application menu into File, Edit, View, Window and Help. Preferences and a Quit/Exit item move to File (Quit stays in the macOS app menu), a standard Edit menu (undo/redo/cut/copy/paste/select all) was added, and the former top-level Zoom menu is folded into View, which now only holds view-related items
 - The Preferences window is built from one file pair per section (`settings/sections/<name>.js` controller + `<name>.html` markup), with shared styles in `settings.css` and a thin shell in `settings-renderer.js`, instead of one large HTML/renderer file. Section markup is read by the main process and inserted with `DOMParser` (never as raw HTML); behaviour is unchanged
 - Steam depot selection now always uses `STEAM_DEPOT_ID`: each build machine (Linux, Windows, macOS) has its own `.env` with that platform's depot ID, so the `STEAM_DEPOT_ID_<PLATFORM>` overrides were removed
@@ -25,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The packaged app no longer bundles the `steam/` tooling directory, `test/`, `scripts/` or `.env`. The `files` glob was sweeping them into `app.asar`, which grew to gigabytes (each build packing the previous upload's content), broke the universal macOS build ("value of length is out of range") and shipped `.env` inside the app
 - macOS builds are ad-hoc signed again (`mac.identity: "-"`). With electron-builder 26.x the app was silently left unsigned because the machine has no valid Developer ID, an accidental change from the previous builder version
 - Linux builds keep the `GenesisClient` executable name. electron-builder 26.x changed the default from the product name to the lowercased package name (`genesis-electron`), which broke the Steam launch option ("Missing game executable")
+- The macOS client reliably takes over the menu bar when launched from Steam. The LaunchServices activation fallback read the bundle ID from the packaged `package.json`, but electron-builder removes the `build` config from it, so the fallback never ran and macOS kept showing Steam's menus
+- **About GenesisClient** on macOS shows a populated About panel with the app name, version, copyright and credits instead of an empty panel
+- The hotkey shortcut field in Preferences no longer makes the mouse pointer flicker on macOS. The native tooltip was replaced with an `aria-label`, and the click-to-record field uses a pointer cursor
 
 ## [1.0.21] - 2026-10-18
 
