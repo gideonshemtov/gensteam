@@ -4,10 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { applyZoom, stepZoom, ZOOM_STEP, zoomPercent } = require('./ZoomController');
 const { sameOrigin } = require('./origin');
-
-// Hardcoded game client URL
-const GAME_URL = 'https://www.genesismud.org/play';
-const GAME_ORIGIN = new URL(GAME_URL).origin;
+const { GAME_URL, GAME_ORIGIN } = require('./game');
 
 // Only these schemes may be handed to the operating system
 const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
@@ -86,6 +83,7 @@ class WindowManager {
     this.menuBuilder = menuBuilder;
     this.findBarManager = findBarManager;
     this.win = null;
+    this.webClientBridge = null;
   }
 
   create() {
@@ -179,10 +177,44 @@ class WindowManager {
       `);
       
       // Initialize button panel and timer manager
-      initializeButtonPanelAndTimers(this.win, settings).catch(err => {
-        console.error('Failed to initialize button panel:', err);
-      });
+      initializeButtonPanelAndTimers(this.win, settings)
+        .then(() => this.checkWebClientBridge())
+        .catch(err => {
+          console.error('Failed to initialize button panel:', err);
+        });
     });
+  }
+
+  // Report whether the command bridge injected by WebClientHook.js made it into
+  // the page. Buttons, hotkeys and timers use it to run the web client's aliases.
+  checkWebClientBridge() {
+    if (!this.win || this.win.isDestroyed?.()) {
+      return;
+    }
+
+    this.win.webContents
+      .executeJavaScript(`
+        ({
+          genesisClient: typeof window.genesisClient !== 'undefined',
+          methods: window.genesisClient ? Object.keys(window.genesisClient) : []
+        })
+      `)
+      .then((status) => {
+        if (!status) {
+          return;
+        }
+        this.webClientBridge = status;
+        if (!status.genesisClient) {
+          console.warn(
+            'Genesis client bridge was not injected; commands will use the fallback send path.',
+          );
+        } else {
+          console.log('🧩 Genesis client bridge:', status);
+        }
+      })
+      .catch(() => {
+        // Ignore if the page is navigating or the window is gone.
+      });
   }
 
   setupNavigationHandlers() {

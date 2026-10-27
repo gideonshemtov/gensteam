@@ -1,10 +1,35 @@
 // CommandSender.js - shared logic for sending a command to the MUD client.
-// Injected into the game page as window.sendCommand and used by ButtonPanel
-// and TimerManager so the MUD-API/input-field fallback lives in one place.
+// Injected into the game page as window.sendCommand and used by ButtonPanel,
+// HotkeyManager and TimerManager so the send-path priority lives in one place.
 function sendCommand(command, options = {}) {
-  const { logPrefix = 'Command', restoreInput = false } = options;
+  const {
+    logPrefix = 'Command',
+    restoreInput = false,
+    recordHistory = false,
+  } = options;
 
-  // Prefer the MUD Connector API when available.
+  // Preferred: the bridge injected by WebClientHook.js uses the official
+  // client's own command path, so the player's JavaScript aliases run and the
+  // client handles echo/output itself.
+  if (typeof window !== 'undefined' && window.genesisClient) {
+    const bridge = window.genesisClient;
+    const send = recordHistory && typeof bridge.sendTyped === 'function'
+      ? bridge.sendTyped
+      : bridge.send;
+
+    if (typeof send === 'function') {
+      console.log(`${logPrefix} via Genesis client bridge`);
+      try {
+        send.call(bridge, command);
+        return true;
+      } catch (error) {
+        console.warn('Genesis client bridge send failed, falling back:', error);
+      }
+    }
+  }
+
+  // Raw WebSocket path. It does not run client aliases, but it is the most
+  // reliable fallback if the page was not patched.
   if (typeof window !== 'undefined' && window.mudAPI && window.mudAPI.send) {
     console.log(`${logPrefix} via MUD Connector`);
     const success = window.mudAPI.send(command);
