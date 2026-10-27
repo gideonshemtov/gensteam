@@ -354,6 +354,24 @@ class ButtonPanel {
         logPrefix: `🔘 Button clicked: "${btnConfig.command}"`,
       });
     }
+
+    // Clicking a button moves focus to it, so the next Enter would activate the
+    // button again instead of sending what the player has typed. Put the caret
+    // back in the game input after the command has been sent.
+    this.focusGameInput();
+  }
+
+  focusGameInput() {
+    const input = typeof document !== 'undefined' ? document.getElementById('input') : null;
+    if (!input || typeof input.focus !== 'function') {
+      return;
+    }
+
+    input.focus();
+    if (typeof input.setSelectionRange === 'function') {
+      const end = input.value ? input.value.length : 0;
+      input.setSelectionRange(end, end);
+    }
   }
 
   updateSettings(newSettings) {

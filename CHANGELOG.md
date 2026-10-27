@@ -24,6 +24,7 @@ Steam's default branch (1.0.21, build 26032202).
 - The macOS client reliably takes over the menu bar when launched from Steam. The LaunchServices activation fallback read the bundle ID from the packaged `package.json`, but electron-builder removes the `build` config from it, so the fallback never ran and macOS kept showing Steam's menus
 - **About GenesisClient** on macOS shows a populated About panel with the app name, version, copyright and credits instead of an empty panel
 - The hotkey shortcut field in Preferences no longer makes the mouse pointer flicker on macOS. The native tooltip was replaced with an `aria-label`, and the click-to-record field uses a pointer cursor
+- Clicking a command button now returns focus to the game input, so the next `Enter` sends what the player has typed instead of activating the button again
 
 ## [1.0.21] - 2026-10-18
 
