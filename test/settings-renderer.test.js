@@ -78,3 +78,10 @@ test('hotkeys can be configured from the UI', () => {
   assert.ok(hotkeys.includes('data-path="hotkeys.enabled"'), 'hotkeys partial is missing the enable toggle');
   assert.ok(readSection('hotkeys').includes('recordHotkey'), 'hotkeys section is missing recordHotkey()');
 });
+
+test('Escape closes preferences and cancels an in-progress hotkey recording', () => {
+  const shell = fs.readFileSync(path.join(repo, 'settings', 'settings-renderer.js'), 'utf8');
+  assert.ok(shell.includes("event.key !== 'Escape'"), 'the shell should handle Escape');
+  assert.ok(shell.includes('this.cancelSettings()'), 'Escape should close preferences');
+  assert.ok(shell.includes('active.blur()'), 'Escape should cancel hotkey recording');
+});

@@ -323,6 +323,9 @@
     .hotkey-keys-input {
         width: 180px;
         font-family: 'Courier New', Consolas, monospace;
+        /* It is a click-to-record field, not an editable text box. The explicit
+           pointer also avoids the I-beam flickering seen on macOS. */
+        cursor: pointer;
     }
 
     .hotkey-keys-input.recording {

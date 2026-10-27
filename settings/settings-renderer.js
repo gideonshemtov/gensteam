@@ -139,6 +139,32 @@ class SettingsRenderer {
       }
     });
 
+    // Escape closes the preferences window. While a hotkey is being recorded it
+    // cancels the recording instead, and it dismisses the reset confirmation
+    // when that is open.
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      const resetModal = document.getElementById('resetModal');
+      if (resetModal?.classList.contains('active')) {
+        event.preventDefault();
+        this.hideResetModal();
+        return;
+      }
+
+      const active = document.activeElement;
+      if (active?.classList.contains('hotkey-keys-input') && active.classList.contains('recording')) {
+        event.preventDefault();
+        active.blur();
+        return;
+      }
+
+      event.preventDefault();
+      this.cancelSettings();
+    }, true);
+
     // Handle close request from main process
     if (window.electronAPI && window.electronAPI.onCloseRequested) {
       window.electronAPI.onCloseRequested(() => {

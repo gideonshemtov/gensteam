@@ -58,7 +58,9 @@
     keysInput.readOnly = true;
     keysInput.className = 'setting-input hotkey-keys-input';
     keysInput.placeholder = 'Click, then press keys';
-    keysInput.title = 'Click and press a key combination';
+    // Prefer an aria-label over a title tooltip: native tooltips on macOS can
+    // make the pointer flicker when they overlap the window edge.
+    keysInput.setAttribute('aria-label', 'Click and press a key combination');
     keysInput.value = binding.keys ?? '';
 
     keysInput.addEventListener('focus', () => {
