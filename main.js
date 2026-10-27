@@ -29,8 +29,9 @@ let timerIPC;
 let windowManager;
 
 // Application identifier from the build config (see package.json "build.appId").
-// Used on macOS to ask LaunchServices to activate the running app.
-const BUNDLE_ID = require('./package.json').build && require('./package.json').build.appId;
+// Used on macOS to ask LaunchServices to activate the running app. Keep this in
+// sync with build.appId; the packaged package.json has the build config pruned.
+const BUNDLE_ID = require('./js/bundleId');
 
 // Steam activates its own window just after handing the launch off to the game,
 // which leaves the game behind the Steam client. On macOS that also means the
@@ -123,6 +124,7 @@ function activateApp(win, { allowLaunchServices = true } = {}) {
   if (allowLaunchServices && !launchServicesActivationFailed && app.isPackaged && BUNDLE_ID) {
     try {
       spawn('/usr/bin/open', ['-b', BUNDLE_ID], { stdio: 'ignore' }).unref();
+      logStartup(`activateApp: asked LaunchServices to activate ${BUNDLE_ID}`);
     } catch {
       // The plain focus calls above already ran; nothing more to do.
     }
