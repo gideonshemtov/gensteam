@@ -1,6 +1,6 @@
 {
   "name": "genesis-electron",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "Genesis MUD — Official Desktop Client",
   "main": "main.js",
   "author": "Genesis Mud",
@@ -80,7 +80,7 @@
     "ajv": "^8.20.0"
   },
   "devDependencies": {
-    "electron": "44.9.0",
+    "electron": "45.0.0",
     "electron-builder": "26.17.0",
     "electron-builder-squirrel-windows": "26.17.0"
   }
