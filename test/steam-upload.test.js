@@ -27,7 +27,11 @@ test('renderTemplate replaces every occurrence of each token', () => {
   assert.equal(rendered, 'a 1 b 1 c 2');
 });
 
-test('detectExecutables finds the game binary but not Chromium helpers', (t) => {
+// Windows has no POSIX execute bits, so the mode-based detection cannot be
+// exercised there; the Windows path is covered by the .exe test below.
+test('detectExecutables finds the game binary but not Chromium helpers', {
+  skip: process.platform === 'win32' ? 'POSIX execute bits are unavailable on Windows' : false,
+}, (t) => {
   const dir = tempDir(t);
   fs.writeFileSync(path.join(dir, 'GenesisClient'), 'x', { mode: 0o755 });
   fs.writeFileSync(path.join(dir, 'chrome-sandbox'), 'x', { mode: 0o4755 });
