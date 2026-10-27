@@ -14,22 +14,32 @@ function buildTemplate() {
   return builder.createMenu(new electronStub.BrowserWindow({}), null);
 }
 
-// Tests run on Linux, i.e. the non-macOS branch (File menu instead of the app menu).
+const isMac = process.platform === 'darwin';
+// macOS uses its application menu (About/Preferences/Quit) where other
+// platforms use a File menu.
+const primaryMenuLabel = isMac ? 'GenesisClient' : 'File';
+
 const template = buildTemplate();
 const labels = template.map((item) => item.label);
 
 test('the menu bar is ordered File, Edit, View, Window, Help', () => {
-  assert.deepEqual(labels, ['File', 'Edit', 'View', 'Window', 'Help']);
+  const expected = isMac
+    ? ['GenesisClient', 'Edit', 'View', 'Window', 'Help']
+    : ['File', 'Edit', 'View', 'Window', 'Help'];
+  assert.deepEqual(labels, expected);
 });
 
-test('File holds Preferences and a Quit/Exit item', () => {
-  const file = findMenuItem(template, 'File');
-  assert.ok(file, 'expected a File menu');
+test('the primary menu holds Preferences and a Quit/Exit item', () => {
+  const primary = findMenuItem(template, primaryMenuLabel);
+  assert.ok(primary, `expected a ${primaryMenuLabel} menu`);
 
-  assert.ok(findMenuItem(file.submenu, 'Preferences...'), 'File should contain Preferences');
+  assert.ok(
+    findMenuItem(primary.submenu, 'Preferences...'),
+    `${primaryMenuLabel} should contain Preferences`,
+  );
 
-  const quit = file.submenu.find((item) => item.role === 'quit');
-  assert.ok(quit, 'File should contain a quit item');
+  const quit = primary.submenu.find((item) => item.role === 'quit');
+  assert.ok(quit, `${primaryMenuLabel} should contain a quit item`);
   assert.equal(typeof quit.click === 'function' || quit.role === 'quit', true);
 });
 
