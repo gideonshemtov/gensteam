@@ -1,5 +1,5 @@
 // MenuBuilder.js
-const { Menu, dialog } = require('electron');
+const { app, Menu, dialog } = require('electron');
 const path = require('path');
 const { setZoom, stepZoom, ZOOM_STEP } = require('./ZoomController');
 
@@ -264,25 +264,41 @@ class MenuBuilder {
     };
   }
 
+  showAbout(win) {
+    const packageJson = require('../package.json');
+
+    if (process.platform === 'darwin') {
+      // The built-in "about" role can open an empty panel when the packaged
+      // app's metadata is not what AppKit expects, so populate it explicitly.
+      app.setAboutPanelOptions({
+        applicationName: DISPLAY_NAME,
+        applicationVersion: packageJson.version,
+        version: packageJson.version,
+        copyright: `Copyright © ${new Date().getFullYear()} Genesis Mud`,
+        credits: `${packageJson.description}\n\nBuilt with Electron.\n\nLicense: ${packageJson.license}`,
+      });
+      app.showAboutPanel();
+      return;
+    }
+
+    dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Genesis MUD — Official Desktop Client',
+      message: `Genesis MUD — Official Desktop Client v${packageJson.version}`,
+      detail: `${packageJson.description}\n\nBuilt with Electron.\n\nLicense: ${packageJson.license}`,
+      buttons: ['OK'],
+      defaultId: 0,
+      icon: path.join(__dirname, '..', 'assets', 'icon.png'),
+    });
+  }
+
   helpMenu(win) {
     return {
       label: 'Help',
       submenu: [
         {
           label: 'About',
-          click: () => {
-            const packageJson = require('../package.json');
-
-            dialog.showMessageBox(win, {
-              type: 'info',
-              title: 'Genesis MUD — Official Desktop Client',
-              message: `Genesis MUD — Official Desktop Client v${packageJson.version}`,
-              detail: `${packageJson.description}\n\nBuilt with Electron.\n\nLicense: ${packageJson.license}`,
-              buttons: ['OK'],
-              defaultId: 0,
-              icon: path.join(__dirname, '..', 'assets', 'icon.png'),
-            });
-          },
+          click: () => this.showAbout(win),
         },
       ],
     };
@@ -294,7 +310,7 @@ class MenuBuilder {
       submenu: [
         {
           label: 'About ' + DISPLAY_NAME,
-          role: 'about',
+          click: () => this.showAbout(win),
         },
         { type: 'separator' },
         this.preferencesItem(win),
