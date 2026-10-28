@@ -33,13 +33,6 @@ let windowManager;
 // sync with build.appId; the packaged package.json has the build config pruned.
 const BUNDLE_ID = require('./js/bundleId');
 
-// Steam activates its own window just after handing the launch off to the game,
-// which leaves the game behind the Steam client. On macOS that also means the
-// menu bar keeps showing Steam's menus instead of ours, because the application
-// menu is global and belongs to the active app. Re-assert activation for a
-// short while so the game wins that race.
-const MAC_ACTIVATION_RETRY_DELAYS = [200, 600, 1200, 2500];
-
 // If asking LaunchServices to activate the app ever starts a second instance
 // (which the single-instance lock rejects) we stop using that fallback to avoid
 // a launch/quit loop.
@@ -182,44 +175,16 @@ if (!gotSingleInstanceLock) {
 
     const win = createWindow();
 
-    // Bring the game window to the front. When launched from Steam the app can
-    // open behind the Steam window, and "ready-to-show" can be many seconds away
-    // while the game page loads (until the app is active macOS keeps showing
-    // Steam's menu bar), so activate immediately and then retry briefly in case
-    // Steam activates itself again afterwards.
+    // Bring the game window to the front exactly once. When launched from
+    // Steam the app can open behind the Steam window; activating it here also
+    // gives it its own menu bar (the app is built as a regular foreground app).
+    // Everything after this is left to the player: the client must never pull
+    // focus back from another app while it is starting or running.
     logStartup(
       `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
     );
 
     activateApp(win);
-
-    if (process.platform === 'darwin') {
-      for (const delay of MAC_ACTIVATION_RETRY_DELAYS) {
-        setTimeout(() => {
-          if (win.isDestroyed()) {
-            return;
-          }
-          if (!win.isFocused()) {
-            activateApp(win);
-          }
-          logStartup(`retry ${delay}ms focused=${win.isFocused()}`);
-        }, delay);
-      }
-    }
-
-    win.once('ready-to-show', () => {
-      if (!win.isDestroyed() && !win.isFocused()) {
-        activateApp(win);
-      }
-    });
-
-    // The game page can take a moment to paint; make sure we are still in front
-    // once it has finished loading.
-    win.webContents.on('did-finish-load', () => {
-      if (process.platform === 'darwin' && !win.isDestroyed() && !win.isFocused()) {
-        activateApp(win);
-      }
-    });
 
     app.on('activate', () => {
       const existing = windowManager && windowManager.getWindow();
