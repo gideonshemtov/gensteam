@@ -5,6 +5,12 @@ All notable changes to GenesisClient are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The client no longer steals keyboard focus back from other apps such as Discord. It asks for focus once when the game launches and after that only when the player explicitly activates it (Dock icon or relaunch); it no longer re-activates itself while the page loads or retries focus during startup
+
 ## [1.0.22] - 2026-10-27
 
 This release contains the changes since the build that is currently live on
