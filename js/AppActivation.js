@@ -3,9 +3,9 @@
 //
 // Steam launches the client as a child process and can leave it behind the
 // Steam window. The launch activation is therefore guarded: before each attempt
-// we check which app is frontmost. Steam, Finder and the client itself are part
-// of the launch handoff and may be replaced by the game; anything else means the
-// player has switched away, so activation stops immediately.
+// we check which app is frontmost. Steam and the client itself are part of the
+// launch handoff and may be replaced by the game; anything else (Safari, Finder,
+// Discord, ...) means the player has switched away, so activation stops.
 //
 // `open -b` is fire-and-forget, so we also keep retrying briefly in case Steam
 // takes the front back during its own launch. Every retry re-checks the
@@ -14,11 +14,12 @@ const { execFileSync } = require('child_process');
 
 const GUARDED_ACTIVATION_DELAYS = [0, 500, 1500, 3000, 5000];
 
-// Apps that are frontmost as part of launching the game.
+// Apps that are frontmost as part of launching the game from Steam. Finder is
+// deliberately excluded: if the player clicks the desktop during startup, that
+// is a switch away from the launch handoff, not a reason to grab focus.
 const LAUNCH_FRONTMOST_BUNDLE_IDS = new Set([
   'com.valvesoftware.steam',
   'com.valvesoftware.steam.helper',
-  'com.apple.finder',
 ]);
 
 function defaultRunLaunchServices(bundleId) {

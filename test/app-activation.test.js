@@ -133,6 +133,20 @@ test('a launch where the player already switched away does not activate', () => 
   assert.deepEqual(launchServicesCalls, []);
 });
 
+test('switching to Finder during startup also stops activation', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: () => 'com.apple.finder',
+  });
+  const win = makeWindow();
+
+  activator.activateAtLaunch(win);
+  timers.runAll();
+
+  assert.deepEqual(win.calls, ['showInactive']);
+  assert.deepEqual(app.focusCalls, []);
+  assert.deepEqual(launchServicesCalls, []);
+});
+
 test('switching away after the first attempt stops further activation', () => {
   const { activator, app, timers, launchServicesCalls } = makeActivator({
     frontmost: frontmostSequence('com.valvesoftware.steam', 'com.apple.Safari'),
