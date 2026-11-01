@@ -1,30 +1,19 @@
-// AppActivation.js - bring the game window to the front without taking focus
-// back from another app once the player has switched away.
+// AppActivation.js - keep window activation explicit and never steal focus.
 //
-// The app is built as a regular foreground app, so macOS gives it its own menu
-// bar as soon as it is active. Activation itself only needs two cases:
+// On macOS a regular app is only frontmost (and owns the menu bar) while it is
+// the active application. Steam launches the client as a child process without
+// activating it, so this policy does not ask the OS to activate the app at all:
 //
-//   1. The initial launch. Steam starts the process as a child, and AppKit can
-//      ignore a normal app.focus() in that situation, so the launch activation
-//      may ask LaunchServices (`open -b`) to activate the running bundle.
-//   2. A user-initiated activation later on (Dock icon or relaunch). That only
-//      raises our own window.
+//   * At launch the window is shown inactive. The game may open behind Steam;
+//     the first click on the window or Dock icon activates it natively.
+//   * `activate()` is only called from user-initiated paths (Dock icon or
+//     relaunch), so showing and focusing our own window cannot steal focus from
+//     another app.
 //
-// `open -b` is fire-and-forget and can activate the app a moment after it is
-// called, so request it at most once, for the initial launch. Requesting it
-// again on a later activation could pull focus back from whatever app the
-// player switched to.
-const LAUNCH_SERVICES = '/usr/bin/open';
+// `ensureForegroundApp` is not focus stealing: it only makes the bundle a
+// regular app so it has its own menu bar and Dock icon once activated.
 
-function createAppActivator({
-  app,
-  spawn,
-  bundleId,
-  platform = process.platform,
-  log = () => {},
-}) {
-  let launchServicesRequested = false;
-
+function createAppActivator({ app, platform = process.platform, log = () => {} }) {
   function ensureForegroundApp() {
     if (platform !== 'darwin') {
       return;
@@ -41,49 +30,47 @@ function createAppActivator({
     }
   }
 
-  function requestLaunchServicesActivation() {
-    if (launchServicesRequested || platform !== 'darwin' || !app.isPackaged || !bundleId) {
-      return false;
-    }
-
-    // Mark it before spawning: even a failed attempt must not be retried later
-    // from a user-initiated activation.
-    launchServicesRequested = true;
-    try {
-      spawn(LAUNCH_SERVICES, ['-b', bundleId], { stdio: 'ignore' }).unref();
-      log(`activateApp: asked LaunchServices to activate ${bundleId}`);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function activate(win, { allowLaunchServices = false } = {}) {
+  function prepare(win) {
     if (!win || win.isDestroyed()) {
-      return;
+      return false;
     }
-
     if (win.isMinimized()) {
       win.restore();
     }
-
     ensureForegroundApp();
-    win.show();
-    win.focus();
+    return true;
+  }
 
-    if (platform !== 'darwin') {
+  // Show the window on screen at launch without activating the application.
+  // On non-macOS platforms there is no separate application activation step,
+  // so a normal show/focus is the existing behaviour.
+  function showAtLaunch(win) {
+    if (!prepare(win)) {
       return;
     }
+    if (platform === 'darwin') {
+      win.showInactive();
+      return;
+    }
+    win.show();
+    win.focus();
+  }
 
-    win.moveTop();
-    app.focus({ steal: true });
-
-    if (allowLaunchServices) {
-      requestLaunchServicesActivation();
+  // Called only when the user explicitly activates the app (Dock icon or
+  // relaunch). macOS has already made the app active by then, so this only
+  // raises and focuses our own window.
+  function activate(win) {
+    if (!prepare(win)) {
+      return;
+    }
+    win.show();
+    win.focus();
+    if (platform === 'darwin') {
+      win.moveTop();
     }
   }
 
-  return { activate, ensureForegroundApp };
+  return { activate, showAtLaunch, ensureForegroundApp };
 }
 
-module.exports = { createAppActivator, LAUNCH_SERVICES };
+module.exports = { createAppActivator };

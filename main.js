@@ -1,6 +1,6 @@
 // main.js
 const { app, BrowserWindow, session, ipcMain, Menu, net } = require('electron');
-const { spawn, execFileSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const SettingsManager = require('./settings/SettingsManager');
@@ -28,11 +28,6 @@ let findBarManager;
 let hotkeyManager;
 let timerIPC;
 let windowManager;
-
-// Application identifier from the build config (see package.json "build.appId").
-// Used on macOS to ask LaunchServices to activate the running app. Keep this in
-// sync with build.appId; the packaged package.json has the build config pruned.
-const BUNDLE_ID = require('./js/bundleId');
 
 // Startup diagnostics. Steam launches the game as a child process, and on macOS
 // the client's menus only appear while it is the active application, so when
@@ -66,17 +61,16 @@ function parentProcessName() {
   }
 }
 
-// Activation is explicit: the game window is brought forward once at launch,
-// and afterwards only when the player asks for it (Dock icon or relaunch). The
-// macOS LaunchServices fallback is limited to the launch activation because
-// `open -b` is fire-and-forget and can move focus back later.
+// Experimental policy: never ask the OS to activate the app automatically. The
+// window is shown inactive at launch and only focused when the player activates
+// the app explicitly (Dock icon or relaunch). The game may therefore open behind
+// Steam until the player clicks it.
 const {
   activate: activateApp,
+  showAtLaunch,
   ensureForegroundApp,
 } = createAppActivator({
   app,
-  spawn,
-  bundleId: BUNDLE_ID,
   platform: process.platform,
   log: logStartup,
 });
@@ -87,9 +81,7 @@ if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    // Another instance was started (e.g. by relaunching the app). Focus the
-    // window we already have instead; only the initial launch may ask
-    // LaunchServices to activate the app.
+    // An explicit relaunch is a user activation, so raising our window is safe.
     const win = windowManager && windowManager.getWindow();
     if (win && !win.isDestroyed()) {
       activateApp(win);
@@ -132,24 +124,22 @@ if (!gotSingleInstanceLock) {
 
     const win = createWindow();
 
-    // Bring the game window to the front exactly once. When launched from
-    // Steam the app can open behind the Steam window; activating it here also
-    // gives it its own menu bar (the app is built as a regular foreground app).
-    // The LaunchServices fallback is allowed only for this initial activation.
-    // Everything after this is left to the player: the client must never pull
-    // focus back from another app while it is starting or running.
+    // Show the window without activating the app. When launched from Steam this
+    // can leave the game behind the Steam window; the player brings it forward
+    // by clicking it or its Dock icon, which macOS treats as an explicit
+    // activation. Everything after this is left to the player.
     logStartup(
       `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
     );
 
-    activateApp(win, { allowLaunchServices: true });
+    showAtLaunch(win);
 
     app.on('activate', () => {
       const existing = windowManager && windowManager.getWindow();
       if (existing && !existing.isDestroyed()) {
         activateApp(existing);
       } else if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+        activateApp(createWindow());
       }
     });
   });

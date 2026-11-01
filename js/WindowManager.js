@@ -93,6 +93,9 @@ class WindowManager {
       width: settings.window.width,
       height: settings.window.height,
       backgroundColor: '#000000',
+      // On macOS the window is shown inactive after creation (see main.js), so
+      // creating it must not activate the app on its own.
+      show: process.platform !== 'darwin',
       autoHideMenuBar: settings.ui.hideMenuBar,
       webPreferences: {
         nodeIntegration: false,

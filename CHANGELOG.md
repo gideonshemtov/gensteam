@@ -5,12 +5,15 @@ All notable changes to GenesisClient are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.23] - 2026-11-01
+## [1.0.23-policy.1] - 2026-11-01
 
 ### Fixed
 
-- The client no longer steals keyboard focus back from other apps such as Discord. It asks for focus once when the game launches and after that only when the player explicitly activates it (Dock icon or relaunch); it no longer re-activates itself while the page loads or retries focus during startup
-- The macOS LaunchServices activation fallback is used only for the launch activation. Activating the app later (Dock icon or relaunch) no longer asks LaunchServices to activate it again, so a delayed `open -b` call cannot pull focus back after the player has switched to another app
+- The client no longer re-activates itself while the page loads or retries focus during startup
+
+### Changed
+
+- Experimental policy-only macOS activation: the client shows its window inactive at launch and never asks the OS to activate the app. Launching from Steam may leave the game behind the Steam window, and the menu bar stays Steam's until the player clicks the game or its Dock icon; after that it only shows and focuses its own window on explicit activation (Dock icon or relaunch)
 
 ## [1.0.22] - 2026-10-27
 
