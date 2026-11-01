@@ -1,6 +1,6 @@
 // main.js
 const { app, BrowserWindow, session, ipcMain, Menu, net } = require('electron');
-const { spawn, execFileSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const SettingsManager = require('./settings/SettingsManager');
@@ -66,16 +66,16 @@ function parentProcessName() {
   }
 }
 
-// Activation is explicit: the game window is brought forward once at launch,
-// and afterwards only when the player asks for it (Dock icon or relaunch). The
-// macOS LaunchServices fallback is limited to the launch activation because
-// `open -b` is fire-and-forget and can move focus back later.
+// Activation is explicit: the game window is brought forward at launch only
+// while Steam/Finder/we are frontmost, and afterwards only when the player asks
+// for it (Dock icon or relaunch). Every launch retry re-checks the frontmost app
+// and stops as soon as another app has focus.
 const {
   activate: activateApp,
+  activateAtLaunch,
   ensureForegroundApp,
 } = createAppActivator({
   app,
-  spawn,
   bundleId: BUNDLE_ID,
   platform: process.platform,
   log: logStartup,
@@ -87,9 +87,7 @@ if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    // Another instance was started (e.g. by relaunching the app). Focus the
-    // window we already have instead; only the initial launch may ask
-    // LaunchServices to activate the app.
+    // An explicit relaunch is a user activation, so raising our window is safe.
     const win = windowManager && windowManager.getWindow();
     if (win && !win.isDestroyed()) {
       activateApp(win);
@@ -132,24 +130,22 @@ if (!gotSingleInstanceLock) {
 
     const win = createWindow();
 
-    // Bring the game window to the front exactly once. When launched from
-    // Steam the app can open behind the Steam window; activating it here also
-    // gives it its own menu bar (the app is built as a regular foreground app).
-    // The LaunchServices fallback is allowed only for this initial activation.
-    // Everything after this is left to the player: the client must never pull
-    // focus back from another app while it is starting or running.
+    // Bring the game window to the front while the launch handoff is still in
+    // progress. Each attempt checks the frontmost app first, so switching to
+    // Discord or another app during startup stops activation instead of pulling
+    // focus back. Everything after that is left to the player.
     logStartup(
       `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
     );
 
-    activateApp(win, { allowLaunchServices: true });
+    activateAtLaunch(win);
 
     app.on('activate', () => {
       const existing = windowManager && windowManager.getWindow();
       if (existing && !existing.isDestroyed()) {
         activateApp(existing);
       } else if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+        activateApp(createWindow());
       }
     });
   });

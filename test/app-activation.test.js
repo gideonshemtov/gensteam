@@ -1,7 +1,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createAppActivator, LAUNCH_SERVICES } = require('../js/AppActivation');
+const {
+  createAppActivator,
+  GUARDED_ACTIVATION_DELAYS,
+} = require('../js/AppActivation');
 
 function makeWindow() {
   const calls = [];
@@ -16,6 +19,7 @@ function makeWindow() {
       this.minimized = false;
     },
     show() { calls.push('show'); },
+    showInactive() { calls.push('showInactive'); },
     focus() { calls.push('focus'); },
     moveTop() { calls.push('moveTop'); },
   };
@@ -39,116 +43,191 @@ function makeApp(overrides = {}) {
   return Object.assign(app, overrides);
 }
 
-function makeSpawn({ fail = false } = {}) {
-  const calls = [];
-  const spawn = (command, args, options) => {
-    const call = { command, args, options, unrefCalled: false };
-    calls.push(call);
-    if (fail) {
-      throw new Error('spawn failed');
-    }
-    return {
-      unref() { call.unrefCalled = true; },
-    };
+function makeTimers() {
+  const timers = [];
+  return {
+    timers,
+    setTimer(fn, delay) {
+      timers.push({ fn, delay });
+      return timers.length;
+    },
+    runAll() {
+      for (const timer of timers) {
+        timer.fn();
+      }
+    },
   };
-  spawn.calls = calls;
-  return spawn;
+}
+
+function frontmostSequence(...ids) {
+  let index = 0;
+  return () => ids[Math.min(index++, ids.length - 1)];
 }
 
 function makeActivator({
   platform = 'darwin',
   app = makeApp(),
-  spawn = makeSpawn(),
   bundleId = 'org.example.app',
+  frontmost = () => 'com.valvesoftware.steam',
   log = () => {},
+  timers = makeTimers(),
 } = {}) {
+  const launchServicesCalls = [];
   return {
     app,
-    spawn,
-    activator: createAppActivator({ app, spawn, bundleId, platform, log }),
+    timers,
+    launchServicesCalls,
+    activator: createAppActivator({
+      app,
+      bundleId,
+      platform,
+      log,
+      getFrontmostBundleId: frontmost,
+      runLaunchServices: (id) => launchServicesCalls.push(id),
+      setTimer: timers.setTimer,
+    }),
   };
 }
 
-test('the initial launch asks LaunchServices to activate the app once', () => {
-  const { activator, app, spawn } = makeActivator();
+test('launch activation is scheduled across the guarded retry window', () => {
+  const { activator, timers } = makeActivator();
+
+  activator.activateAtLaunch(makeWindow());
+
+  assert.deepEqual(
+    timers.timers.map((timer) => timer.delay),
+    GUARDED_ACTIVATION_DELAYS,
+  );
+});
+
+test('a normal launch comes to the front, then stops once we are frontmost', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: frontmostSequence('com.valvesoftware.steam', 'org.example.app'),
+  });
   const win = makeWindow();
 
-  activator.activate(win, { allowLaunchServices: true });
+  activator.activateAtLaunch(win);
+  assert.deepEqual(win.calls, ['showInactive']);
 
-  assert.deepEqual(win.calls, ['show', 'focus', 'moveTop']);
+  timers.runAll();
+
+  assert.deepEqual(win.calls, ['showInactive', 'show', 'focus', 'moveTop']);
   assert.deepEqual(app.focusCalls, [{ steal: true }]);
   assert.deepEqual(app.policyCalls, ['regular']);
   assert.equal(app.dockShowCalls, 0);
-  assert.equal(spawn.calls.length, 1);
-  assert.equal(spawn.calls[0].command, LAUNCH_SERVICES);
-  assert.deepEqual(spawn.calls[0].args, ['-b', 'org.example.app']);
-  assert.equal(spawn.calls[0].unrefCalled, true);
+  assert.deepEqual(launchServicesCalls, ['org.example.app']);
 });
 
-test('LaunchServices is not requested again on a later activation', () => {
-  const { activator, spawn } = makeActivator();
+test('a launch where the player already switched away does not activate', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: () => 'com.apple.Safari',
+  });
   const win = makeWindow();
 
-  activator.activate(win, { allowLaunchServices: true });
-  activator.activate(win, { allowLaunchServices: true });
+  activator.activateAtLaunch(win);
+  timers.runAll();
 
-  assert.equal(spawn.calls.length, 1);
+  assert.deepEqual(win.calls, ['showInactive']);
+  assert.deepEqual(app.focusCalls, []);
+  assert.deepEqual(app.policyCalls, ['regular']);
+  assert.deepEqual(launchServicesCalls, []);
 });
 
-test('user-initiated activation does not use LaunchServices', () => {
-  const { activator, app, spawn } = makeActivator();
+test('switching away after the first attempt stops further activation', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: frontmostSequence('com.valvesoftware.steam', 'com.apple.Safari'),
+  });
   const win = makeWindow();
 
-  // Default is the Dock/relaunch path: raise our own window only.
-  activator.activate(win);
+  activator.activateAtLaunch(win);
+  timers.runAll();
 
-  assert.deepEqual(win.calls, ['show', 'focus', 'moveTop']);
+  assert.deepEqual(win.calls, ['showInactive', 'show', 'focus', 'moveTop']);
   assert.deepEqual(app.focusCalls, [{ steal: true }]);
-  assert.equal(spawn.calls.length, 0);
+  assert.deepEqual(launchServicesCalls, ['org.example.app']);
 });
 
-test('non-macOS platforms only show and focus the window', () => {
-  const { activator, app, spawn } = makeActivator({ platform: 'linux' });
+test('an unknown frontmost app is treated as a reason to stop', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: () => null,
+  });
   const win = makeWindow();
 
-  activator.activate(win, { allowLaunchServices: true });
+  activator.activateAtLaunch(win);
+  timers.runAll();
+
+  assert.deepEqual(win.calls, ['showInactive']);
+  assert.deepEqual(app.focusCalls, []);
+  assert.deepEqual(launchServicesCalls, []);
+});
+
+test('non-macOS launch keeps the normal show and focus behaviour', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    platform: 'linux',
+  });
+  const win = makeWindow();
+
+  activator.activateAtLaunch(win);
 
   assert.deepEqual(win.calls, ['show', 'focus']);
   assert.deepEqual(app.focusCalls, []);
   assert.deepEqual(app.policyCalls, []);
-  assert.equal(spawn.calls.length, 0);
+  assert.equal(timers.timers.length, 0);
+  assert.deepEqual(launchServicesCalls, []);
 });
 
-test('LaunchServices is skipped when the app is not packaged', () => {
-  const { activator, spawn } = makeActivator({ app: makeApp({ isPackaged: false }) });
+test('an unpackaged development run never asks LaunchServices to activate', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    app: makeApp({ isPackaged: false }),
+  });
   const win = makeWindow();
 
-  activator.activate(win, { allowLaunchServices: true });
+  activator.activateAtLaunch(win);
+  timers.runAll();
 
-  assert.equal(spawn.calls.length, 0);
+  assert.equal(app.focusCalls.length, GUARDED_ACTIVATION_DELAYS.length);
+  assert.deepEqual(launchServicesCalls, []);
 });
 
-test('a minimized window is restored before it is shown', () => {
-  const { activator } = makeActivator();
+test('user-initiated activation shows and focuses the existing window', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator();
   const win = makeWindow();
-  win.minimized = true;
 
   activator.activate(win);
 
-  assert.deepEqual(win.calls, ['restore', 'show', 'focus', 'moveTop']);
+  assert.deepEqual(win.calls, ['show', 'focus', 'moveTop']);
+  assert.deepEqual(app.focusCalls, [{ steal: true }]);
+  assert.deepEqual(app.policyCalls, ['regular']);
+  assert.equal(timers.timers.length, 0);
+  assert.deepEqual(launchServicesCalls, []);
+});
+
+test('a minimized window is restored before it is shown', () => {
+  const { activator, timers } = makeActivator();
+  const win = makeWindow();
+  win.minimized = true;
+
+  activator.activateAtLaunch(win);
+  timers.runAll();
+
+  assert.equal(win.calls[0], 'restore');
+  assert.equal(win.calls[1], 'showInactive');
   assert.equal(win.minimized, false);
 });
 
 test('a destroyed window is ignored', () => {
-  const { activator, app, spawn } = makeActivator();
+  const { activator, app, timers, launchServicesCalls } = makeActivator();
   const win = makeWindow();
   win.destroyed = true;
 
-  activator.activate(win, { allowLaunchServices: true });
+  activator.activateAtLaunch(win);
+  activator.activate(win);
+  timers.runAll();
 
   assert.deepEqual(win.calls, []);
   assert.deepEqual(app.focusCalls, []);
-  assert.equal(spawn.calls.length, 0);
+  assert.deepEqual(app.policyCalls, []);
+  assert.deepEqual(launchServicesCalls, []);
 });
 
 test('ensureForegroundApp does not call dock.show()', () => {
@@ -158,15 +237,4 @@ test('ensureForegroundApp does not call dock.show()', () => {
 
   assert.deepEqual(app.policyCalls, ['regular']);
   assert.equal(app.dockShowCalls, 0);
-});
-
-test('a failed LaunchServices spawn does not break activation or retry', () => {
-  const { activator, spawn } = makeActivator({ spawn: makeSpawn({ fail: true }) });
-  const win = makeWindow();
-
-  assert.doesNotThrow(() => activator.activate(win, { allowLaunchServices: true }));
-  assert.doesNotThrow(() => activator.activate(win, { allowLaunchServices: true }));
-
-  assert.deepEqual(win.calls, ['show', 'focus', 'moveTop', 'show', 'focus', 'moveTop']);
-  assert.equal(spawn.calls.length, 1);
 });

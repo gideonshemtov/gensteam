@@ -1,30 +1,64 @@
-// AppActivation.js - bring the game window to the front without taking focus
-// back from another app once the player has switched away.
+// AppActivation.js - bring the game window forward at launch without taking
+// focus back from another app after the player has switched away.
 //
-// The app is built as a regular foreground app, so macOS gives it its own menu
-// bar as soon as it is active. Activation itself only needs two cases:
+// Steam launches the client as a child process and can leave it behind the
+// Steam window. The launch activation is therefore guarded: before each attempt
+// we check which app is frontmost. Steam, Finder and the client itself are part
+// of the launch handoff and may be replaced by the game; anything else means the
+// player has switched away, so activation stops immediately.
 //
-//   1. The initial launch. Steam starts the process as a child, and AppKit can
-//      ignore a normal app.focus() in that situation, so the launch activation
-//      may ask LaunchServices (`open -b`) to activate the running bundle.
-//   2. A user-initiated activation later on (Dock icon or relaunch). That only
-//      raises our own window.
-//
-// `open -b` is fire-and-forget and can activate the app a moment after it is
-// called, so request it at most once, for the initial launch. Requesting it
-// again on a later activation could pull focus back from whatever app the
-// player switched to.
-const LAUNCH_SERVICES = '/usr/bin/open';
+// `open -b` is fire-and-forget, so we also keep retrying briefly in case Steam
+// takes the front back during its own launch. Every retry re-checks the
+// frontmost app first, which is what prevents the old focus-stealing loop.
+const { execFileSync } = require('child_process');
+
+const GUARDED_ACTIVATION_DELAYS = [0, 500, 1500, 3000, 5000];
+
+// Apps that are frontmost as part of launching the game.
+const LAUNCH_FRONTMOST_BUNDLE_IDS = new Set([
+  'com.valvesoftware.steam',
+  'com.valvesoftware.steam.helper',
+  'com.apple.finder',
+]);
+
+function defaultRunLaunchServices(bundleId) {
+  execFileSync('/usr/bin/open', ['-b', bundleId], {
+    stdio: 'ignore',
+    timeout: 2000,
+  });
+}
+
+function defaultFrontmostBundleId() {
+  try {
+    const front = execFileSync('/usr/bin/lsappinfo', ['front'], {
+      encoding: 'utf8',
+      timeout: 1000,
+    }).trim();
+    if (!front) {
+      return null;
+    }
+
+    const info = execFileSync(
+      '/usr/bin/lsappinfo',
+      ['info', '-only', 'bundleID', front],
+      { encoding: 'utf8', timeout: 1000 },
+    );
+    const match = /bundleID="([^"]+)"/.exec(info);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
 
 function createAppActivator({
   app,
-  spawn,
   bundleId,
   platform = process.platform,
   log = () => {},
+  getFrontmostBundleId = defaultFrontmostBundleId,
+  runLaunchServices = defaultRunLaunchServices,
+  setTimer = setTimeout,
 }) {
-  let launchServicesRequested = false;
-
   function ensureForegroundApp() {
     if (platform !== 'darwin') {
       return;
@@ -41,49 +75,110 @@ function createAppActivator({
     }
   }
 
-  function requestLaunchServicesActivation() {
-    if (launchServicesRequested || platform !== 'darwin' || !app.isPackaged || !bundleId) {
-      return false;
-    }
-
-    // Mark it before spawning: even a failed attempt must not be retried later
-    // from a user-initiated activation.
-    launchServicesRequested = true;
-    try {
-      spawn(LAUNCH_SERVICES, ['-b', bundleId], { stdio: 'ignore' }).unref();
-      log(`activateApp: asked LaunchServices to activate ${bundleId}`);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function activate(win, { allowLaunchServices = false } = {}) {
+  function prepare(win) {
     if (!win || win.isDestroyed()) {
-      return;
+      return false;
     }
-
     if (win.isMinimized()) {
       win.restore();
     }
-
     ensureForegroundApp();
-    win.show();
-    win.focus();
+    return true;
+  }
 
-    if (platform !== 'darwin') {
-      return;
+  // Returns true when the current frontmost app is safe to replace with the
+  // game, false when activation should stop (another app has focus, or the
+  // game is already frontmost).
+  function isSafeToActivate() {
+    if (platform !== 'darwin' || !app.isPackaged) {
+      return true;
     }
 
+    const frontmost = getFrontmostBundleId();
+    if (frontmost === bundleId) {
+      log('activateAtLaunch: already frontmost');
+      return false;
+    }
+    if (!frontmost || !LAUNCH_FRONTMOST_BUNDLE_IDS.has(frontmost)) {
+      log(`activateAtLaunch: skipped (frontmost=${frontmost || 'unknown'})`);
+      return false;
+    }
+
+    log(`activateAtLaunch: frontmost=${frontmost}`);
+    return true;
+  }
+
+  // Returns true to keep retrying, false once activation should stop.
+  function attemptActivation(win) {
+    if (!isSafeToActivate()) {
+      return false;
+    }
+
+    win.show();
+    win.focus();
     win.moveTop();
     app.focus({ steal: true });
 
-    if (allowLaunchServices) {
-      requestLaunchServicesActivation();
+    // app.focus() can be ignored when Steam started the process, so also ask
+    // LaunchServices to activate the running bundle. This is still guarded by
+    // the frontmost check above.
+    if (app.isPackaged && bundleId) {
+      try {
+        runLaunchServices(bundleId);
+        log('activateAtLaunch: asked LaunchServices');
+      } catch {
+        log('activateAtLaunch: LaunchServices failed');
+      }
+    }
+
+    return true;
+  }
+
+  // Launch path: show the window inactive first, then try to bring it forward
+  // only while the launch handoff is still frontmost.
+  function activateAtLaunch(win) {
+    if (!prepare(win)) {
+      return;
+    }
+    if (platform !== 'darwin') {
+      win.show();
+      win.focus();
+      return;
+    }
+
+    win.showInactive();
+
+    let stopped = false;
+    for (const delay of GUARDED_ACTIVATION_DELAYS) {
+      setTimer(() => {
+        if (stopped || win.isDestroyed()) {
+          return;
+        }
+        stopped = !attemptActivation(win);
+      }, delay);
     }
   }
 
-  return { activate, ensureForegroundApp };
+  // Called only when the user explicitly activates the app (Dock icon or
+  // relaunch). The user asked for the window, so raising it cannot steal focus.
+  function activate(win) {
+    if (!prepare(win)) {
+      return;
+    }
+    win.show();
+    win.focus();
+    if (platform === 'darwin') {
+      win.moveTop();
+      app.focus({ steal: true });
+    }
+  }
+
+  return { activate, activateAtLaunch, ensureForegroundApp };
 }
 
-module.exports = { createAppActivator, LAUNCH_SERVICES };
+module.exports = {
+  createAppActivator,
+  defaultFrontmostBundleId,
+  GUARDED_ACTIVATION_DELAYS,
+  LAUNCH_FRONTMOST_BUNDLE_IDS,
+};

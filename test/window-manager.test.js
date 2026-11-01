@@ -32,6 +32,13 @@ test('create() loads the hardcoded game URL and ignores any configured one', () 
   assert.deepEqual(loadedUrls, [GAME_URL]);
 });
 
+test('create() only shows the window on platforms that activate it directly', () => {
+  const manager = new WindowManager(makeSettingsManager(), { createMenu: () => ({}) }, null);
+  const win = manager.create();
+
+  assert.equal(win.options.show, process.platform !== 'darwin');
+});
+
 test('create() applies the saved zoom level', () => {
   const manager = new WindowManager(makeSettingsManager(), { createMenu: () => ({}) }, null);
   const win = manager.create();
