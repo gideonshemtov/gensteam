@@ -7,12 +7,14 @@
 // launch handoff and may be replaced by the game; anything else (Safari, Finder,
 // Discord, ...) means the player has switched away, so activation stops.
 //
-// `open -b` is fire-and-forget, so we also keep retrying briefly in case Steam
-// takes the front back during its own launch. Every retry re-checks the
-// frontmost app first, which is what prevents the old focus-stealing loop.
+// `open -b` is fire-and-forget, and Steam briefly takes the front back about a
+// second after the game first appears. Keep the guarded attempts running for a
+// few seconds: if the game is already frontmost we do nothing, but if Steam has
+// taken the front back we reclaim it. Every retry re-checks the frontmost app
+// first, which is what prevents the old focus-stealing loop.
 const { execFileSync } = require('child_process');
 
-const GUARDED_ACTIVATION_DELAYS = [0, 500, 1500, 3000, 5000];
+const GUARDED_ACTIVATION_DELAYS = [0, 500, 1500, 3000];
 
 // Apps that are frontmost as part of launching the game from Steam. Finder is
 // deliberately excluded: if the player clicks the desktop during startup, that
@@ -87,32 +89,34 @@ function createAppActivator({
     return true;
   }
 
-  // Returns true when the current frontmost app is safe to replace with the
-  // game, false when activation should stop (another app has focus, or the
-  // game is already frontmost).
-  function isSafeToActivate() {
+  // Returns:
+  //   "activate" - the launch handoff is frontmost, bring the game forward
+  //   "idle"     - the game is already frontmost, do nothing but keep watching
+  //   "stop"     - another app has focus, the player switched away
+  function activationDecision() {
     if (platform !== 'darwin' || !app.isPackaged) {
-      return true;
+      return 'activate';
     }
 
     const frontmost = getFrontmostBundleId();
     if (frontmost === bundleId) {
       log('activateAtLaunch: already frontmost');
-      return false;
+      return 'idle';
     }
     if (!frontmost || !LAUNCH_FRONTMOST_BUNDLE_IDS.has(frontmost)) {
       log(`activateAtLaunch: skipped (frontmost=${frontmost || 'unknown'})`);
-      return false;
+      return 'stop';
     }
 
     log(`activateAtLaunch: frontmost=${frontmost}`);
-    return true;
+    return 'activate';
   }
 
-  // Returns true to keep retrying, false once activation should stop.
+  // Returns "idle" or "activated" to keep watching, "stop" to end the retries.
   function attemptActivation(win) {
-    if (!isSafeToActivate()) {
-      return false;
+    const decision = activationDecision();
+    if (decision !== 'activate') {
+      return decision;
     }
 
     win.show();
@@ -132,7 +136,7 @@ function createAppActivator({
       }
     }
 
-    return true;
+    return 'activated';
   }
 
   // Launch path: show the window inactive first, then try to bring it forward
@@ -155,7 +159,9 @@ function createAppActivator({
         if (stopped || win.isDestroyed()) {
           return;
         }
-        stopped = !attemptActivation(win);
+        if (attemptActivation(win) === 'stop') {
+          stopped = true;
+        }
       }, delay);
     }
   }

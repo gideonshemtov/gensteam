@@ -5,6 +5,12 @@ All notable changes to GenesisClient are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.24] - 2026-11-01
+
+### Fixed
+
+- Keep the guarded launch activation running through Steam's launch handoff. Steam briefly takes the front back about a second after the game first appears; the client now reclaims the front if Steam is still frontmost, while doing nothing if the game is already frontmost or the player has switched to another app
+
 ## [1.0.23] - 2026-11-01
 
 ### Fixed
