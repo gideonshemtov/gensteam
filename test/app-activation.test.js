@@ -23,16 +23,20 @@ function makeWindow() {
 }
 
 function makeApp() {
-  return {
+  const app = {
     focusCalls: [],
     policyCalls: [],
+    dockShowCalls: 0,
     focus(options) { this.focusCalls.push(options); },
     setActivationPolicy(policy) { this.policyCalls.push(policy); },
     dock: {
-      show: () => Promise.resolve(),
-      hidden: false,
+      show: () => {
+        app.dockShowCalls += 1;
+        return Promise.resolve();
+      },
     },
   };
+  return app;
 }
 
 function makeActivator({ platform = 'darwin', app = makeApp(), log = () => {} } = {}) {
@@ -51,6 +55,7 @@ test('macOS launch shows the window inactive and never activates the app', () =>
   assert.deepEqual(win.calls, ['showInactive']);
   assert.deepEqual(app.focusCalls, []);
   assert.deepEqual(app.policyCalls, ['regular']);
+  assert.equal(app.dockShowCalls, 0);
 });
 
 test('non-macOS launch keeps the normal show and focus behaviour', () => {
@@ -115,4 +120,5 @@ test('ensureForegroundApp makes the app regular without focusing it', () => {
 
   assert.deepEqual(app.policyCalls, ['regular']);
   assert.deepEqual(app.focusCalls, []);
+  assert.equal(app.dockShowCalls, 0);
 });

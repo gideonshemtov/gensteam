@@ -10,8 +10,11 @@
 //     relaunch), so showing and focusing our own window cannot steal focus from
 //     another app.
 //
-// `ensureForegroundApp` is not focus stealing: it only makes the bundle a
-// regular app so it has its own menu bar and Dock icon once activated.
+// `ensureForegroundApp` only sets the activation policy. Do not call
+// app.dock.show() here: on macOS 27 it activates the app roughly four seconds
+// into startup and pulls focus back from whichever app the player switched to.
+// The bundle is already a regular foreground app via Info.plist, so it has a
+// Dock icon without that call.
 
 function createAppActivator({ app, platform = process.platform, log = () => {} }) {
   function ensureForegroundApp() {
@@ -20,11 +23,7 @@ function createAppActivator({ app, platform = process.platform, log = () => {} }
     }
     try {
       app.setActivationPolicy('regular');
-      const shown = app.dock && app.dock.show ? app.dock.show() : null;
-      if (shown && typeof shown.catch === 'function') {
-        shown.catch(() => {});
-      }
-      log('ensureForegroundApp: setActivationPolicy(regular) + dock.show()');
+      log('ensureForegroundApp: setActivationPolicy(regular)');
     } catch (err) {
       log(`ensureForegroundApp failed: ${err && err.message}`);
     }

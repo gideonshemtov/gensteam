@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Experimental policy-only macOS activation: the client shows its window inactive at launch and never asks the OS to activate the app. Launching from Steam may leave the game behind the Steam window, and the menu bar stays Steam's until the player clicks the game or its Dock icon; after that it only shows and focuses its own window on explicit activation (Dock icon or relaunch)
+- The client no longer calls `app.dock.show()` at startup. On macOS 27 that call activated the app several seconds after launch and pulled focus back from whichever app the player had switched to. The bundle is already a regular foreground app, so it has a Dock icon without it
 
 ## [1.0.22] - 2026-10-27
 
