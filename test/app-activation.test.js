@@ -100,7 +100,7 @@ test('launch activation is scheduled across the guarded retry window', () => {
   );
 });
 
-test('a normal launch comes to the front, then stops once we are frontmost', () => {
+test('a normal launch comes to the front and stays idle while it remains frontmost', () => {
   const { activator, app, timers, launchServicesCalls } = makeActivator({
     frontmost: frontmostSequence('com.valvesoftware.steam', 'org.example.app'),
   });
@@ -116,6 +116,33 @@ test('a normal launch comes to the front, then stops once we are frontmost', () 
   assert.deepEqual(app.policyCalls, ['regular']);
   assert.equal(app.dockShowCalls, 0);
   assert.deepEqual(launchServicesCalls, ['org.example.app']);
+});
+
+test('reclaims the front when Steam takes it back during launch', () => {
+  const { activator, app, timers, launchServicesCalls } = makeActivator({
+    frontmost: frontmostSequence(
+      'com.valvesoftware.steam',
+      'org.example.app',
+      'com.valvesoftware.steam',
+      'org.example.app',
+    ),
+  });
+  const win = makeWindow();
+
+  activator.activateAtLaunch(win);
+  timers.runAll();
+
+  assert.deepEqual(win.calls, [
+    'showInactive',
+    'show',
+    'focus',
+    'moveTop',
+    'show',
+    'focus',
+    'moveTop',
+  ]);
+  assert.deepEqual(app.focusCalls, [{ steal: true }, { steal: true }]);
+  assert.deepEqual(launchServicesCalls, ['org.example.app', 'org.example.app']);
 });
 
 test('a launch where the player already switched away does not activate', () => {
