@@ -22,15 +22,21 @@ function makeWindow() {
 }
 
 function makeApp(overrides = {}) {
-  return {
+  const app = {
     isPackaged: true,
     focusCalls: [],
     policyCalls: [],
+    dockShowCalls: 0,
     focus(options) { this.focusCalls.push(options); },
     setActivationPolicy(policy) { this.policyCalls.push(policy); },
-    dock: { show: () => Promise.resolve() },
-    ...overrides,
+    dock: {
+      show: () => {
+        app.dockShowCalls += 1;
+        return Promise.resolve();
+      },
+    },
   };
+  return Object.assign(app, overrides);
 }
 
 function makeSpawn({ fail = false } = {}) {
@@ -72,6 +78,7 @@ test('the initial launch asks LaunchServices to activate the app once', () => {
   assert.deepEqual(win.calls, ['show', 'focus', 'moveTop']);
   assert.deepEqual(app.focusCalls, [{ steal: true }]);
   assert.deepEqual(app.policyCalls, ['regular']);
+  assert.equal(app.dockShowCalls, 0);
   assert.equal(spawn.calls.length, 1);
   assert.equal(spawn.calls[0].command, LAUNCH_SERVICES);
   assert.deepEqual(spawn.calls[0].args, ['-b', 'org.example.app']);
@@ -142,6 +149,15 @@ test('a destroyed window is ignored', () => {
   assert.deepEqual(win.calls, []);
   assert.deepEqual(app.focusCalls, []);
   assert.equal(spawn.calls.length, 0);
+});
+
+test('ensureForegroundApp does not call dock.show()', () => {
+  const { activator, app } = makeActivator();
+
+  activator.ensureForegroundApp();
+
+  assert.deepEqual(app.policyCalls, ['regular']);
+  assert.equal(app.dockShowCalls, 0);
 });
 
 test('a failed LaunchServices spawn does not break activation or retry', () => {
