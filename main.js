@@ -10,6 +10,7 @@ const MenuBuilder = require('./js/MenuBuilder');
 const FindBarManager = require('./js/FindBarManager');
 const HotkeyManager = require('./js/HotkeyManager');
 const TimerIPC = require('./js/TimerIPC');
+const { createAppActivator } = require('./js/AppActivation');
 const { WindowManager } = require('./js/WindowManager');
 const { installWebClientHook } = require('./js/WebClientHook');
 const {
@@ -32,11 +33,6 @@ let windowManager;
 // Used on macOS to ask LaunchServices to activate the running app. Keep this in
 // sync with build.appId; the packaged package.json has the build config pruned.
 const BUNDLE_ID = require('./js/bundleId');
-
-// If asking LaunchServices to activate the app ever starts a second instance
-// (which the single-instance lock rejects) we stop using that fallback to avoid
-// a launch/quit loop.
-let launchServicesActivationFailed = false;
 
 // Startup diagnostics. Steam launches the game as a child process, and on macOS
 // the client's menus only appear while it is the active application, so when
@@ -70,59 +66,20 @@ function parentProcessName() {
   }
 }
 
-// macOS only: make sure the app is a regular, foreground app. An accessory
-// ("UIElement") app has no menu bar of its own, so macOS keeps showing the
-// previously active app's menus — e.g. Steam's — even while our window is in
-// front. `setActivationPolicy` alone has proven unreliable here, so also ask for
-// the Dock icon, which forces the regular policy.
-function ensureForegroundApp() {
-  if (process.platform !== 'darwin') {
-    return;
-  }
-  try {
-    app.setActivationPolicy('regular');
-    const shown = app.dock && app.dock.show ? app.dock.show() : null;
-    if (shown && typeof shown.catch === 'function') {
-      shown.catch(() => {});
-    }
-    logStartup('ensureForegroundApp: setActivationPolicy(regular) + dock.show()');
-  } catch (err) {
-    logStartup(`ensureForegroundApp failed: ${err && err.message}`);
-  }
-}
-
-function activateApp(win, { allowLaunchServices = true } = {}) {
-  if (!win || win.isDestroyed()) {
-    return;
-  }
-  if (win.isMinimized()) {
-    win.restore();
-  }
-  ensureForegroundApp();
-  win.show();
-  win.focus();
-
-  if (process.platform !== 'darwin') {
-    return;
-  }
-
-  win.moveTop();
-  app.focus({ steal: true });
-
-  // app.focus() relies on the deprecated activateIgnoringOtherApps path, which
-  // macOS can ignore when the app was started by another process (Steam).
-  // Asking LaunchServices to open the already-running bundle activates it
-  // reliably instead. The single-instance lock stops a duplicate if the running
-  // process is not registered with LaunchServices for any reason.
-  if (allowLaunchServices && !launchServicesActivationFailed && app.isPackaged && BUNDLE_ID) {
-    try {
-      spawn('/usr/bin/open', ['-b', BUNDLE_ID], { stdio: 'ignore' }).unref();
-      logStartup(`activateApp: asked LaunchServices to activate ${BUNDLE_ID}`);
-    } catch {
-      // The plain focus calls above already ran; nothing more to do.
-    }
-  }
-}
+// Activation is explicit: the game window is brought forward once at launch,
+// and afterwards only when the player asks for it (Dock icon or relaunch). The
+// macOS LaunchServices fallback is limited to the launch activation because
+// `open -b` is fire-and-forget and can move focus back later.
+const {
+  activate: activateApp,
+  ensureForegroundApp,
+} = createAppActivator({
+  app,
+  spawn,
+  bundleId: BUNDLE_ID,
+  platform: process.platform,
+  log: logStartup,
+});
 
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -130,12 +87,12 @@ if (!gotSingleInstanceLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    // Another instance was started (e.g. by LaunchServices). Focus the window we
-    // already have instead; do not use the LaunchServices fallback again.
-    launchServicesActivationFailed = true;
+    // Another instance was started (e.g. by relaunching the app). Focus the
+    // window we already have instead; only the initial launch may ask
+    // LaunchServices to activate the app.
     const win = windowManager && windowManager.getWindow();
     if (win && !win.isDestroyed()) {
-      activateApp(win, { allowLaunchServices: false });
+      activateApp(win);
     }
   });
 
@@ -178,13 +135,14 @@ if (!gotSingleInstanceLock) {
     // Bring the game window to the front exactly once. When launched from
     // Steam the app can open behind the Steam window; activating it here also
     // gives it its own menu bar (the app is built as a regular foreground app).
+    // The LaunchServices fallback is allowed only for this initial activation.
     // Everything after this is left to the player: the client must never pull
     // focus back from another app while it is starting or running.
     logStartup(
       `started packaged=${app.isPackaged} parent=${parentProcessName()} name=${app.getName()} menu=[${menuLabels()}]`,
     );
 
-    activateApp(win);
+    activateApp(win, { allowLaunchServices: true });
 
     app.on('activate', () => {
       const existing = windowManager && windowManager.getWindow();
