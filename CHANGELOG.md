@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The desktop client now protects player userdata from the web client's quit/reconnect bugs. `gwc.userdata` stays bound to the current character's data instead of the previous character's object, each load starts from a clean object so stale keys cannot leak across characters, stale load responses are ignored, and saves wait for the server copy to load. Failed saves are retried and POSTs are serialised, so a partial or older snapshot cannot overwrite a newer one. If the web client bundle cannot be patched, the client logs a warning and keeps the old behaviour
 
+## [1.0.24] - 2026-11-01
+
+### Fixed
+
+- Keep the guarded launch activation running through Steam's launch handoff. Steam briefly takes the front back about a second after the game first appears; the client now reclaims the front if Steam is still frontmost, while doing nothing if the game is already frontmost or the player has switched to another app
+
 ## [1.0.23] - 2026-11-01
 
 ### Fixed
