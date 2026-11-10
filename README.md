@@ -225,6 +225,8 @@ Place sound files in `assets/sounds/`. Sound mappings can be edited in the JSON 
 
 Buttons, hotkeys, and timers send commands through the official web client's own command path. The app injects a small `window.genesisClient` bridge into the game bundle while it downloads, so the player's JavaScript aliases run and the client handles echo and output normally. If the bundle cannot be patched, the app falls back to the raw WebSocket and input-field paths.
 
+The same bundle rewrite protects player userdata from the web client's reconnect behaviour. Without it, `gwc.userdata` can still point at the previous character's object after a quit/reconnect, and a save fired before the server copy has loaded can overwrite the file with a partial object. The desktop client keeps `gwc.userdata` bound to the live object, starts each load from a clean object, ignores stale responses, waits for the load before saving, retries failed saves, and serialises saves so an older snapshot cannot land after a newer one. The game server and the web client itself are unchanged.
+
 The injected bridge exposes:
 
 | Method | Description |
@@ -233,6 +235,7 @@ The injected bridge exposes:
 | `genesisClient.sendRaw(command)` | Raw send that bypasses aliases |
 | `genesisClient.sendTyped(command)` | Alias-aware send that also records the command in input history |
 | `genesisClient.isConnected()` | Whether the MUD WebSocket is connected |
+| `genesisClient.isUserdataLoaded()` | Whether the player's server-side userdata has finished loading |
 
 The client also exposes `window.mudAPI` for trigger scripts:
 
