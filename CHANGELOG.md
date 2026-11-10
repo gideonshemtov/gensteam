@@ -5,6 +5,12 @@ All notable changes to GenesisClient are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- The desktop client now protects player userdata from the web client's quit/reconnect bugs. `gwc.userdata` stays bound to the current character's data instead of the previous character's object, each load starts from a clean object so stale keys cannot leak across characters, stale load responses are ignored, and saves wait for the server copy to load. Failed saves are retried and POSTs are serialised, so a partial or older snapshot cannot overwrite a newer one. If the web client bundle cannot be patched, the client logs a warning and keeps the old behaviour
+
 ## [1.0.23] - 2026-11-01
 
 ### Fixed
